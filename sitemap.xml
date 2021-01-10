@@ -4,12 +4,37 @@
   
   <url>
     <loc>https://hardy1970.github.io/categories/</loc>
-    <lastmod>2020-12-13T21:00:00+08:00</lastmod>
+    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://hardy1970.github.io/</loc>
-    <lastmod>2020-12-13T21:00:00+08:00</lastmod>
+    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Kubernetes/</loc>
+    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/categories/Kubernetes/</loc>
+    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/</loc>
+    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/</loc>
+    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/</loc>
+    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
   </url>
   
   <url>
@@ -23,28 +48,13 @@
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/post/2019-12-13-golang-gin-parameters-in-path/</loc>
-    <lastmod>2020-12-13T21:00:00+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://hardy1970.github.io/post/</loc>
-    <lastmod>2020-12-13T21:00:00+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://hardy1970.github.io/tags/</loc>
+    <loc>https://hardy1970.github.io/post/golang-gin-parameters-in-path/</loc>
     <lastmod>2020-12-13T21:00:00+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://hardy1970.github.io/2019/12/18/golang-gin-query-parameters-array-map.html</loc>
     <lastmod>2019-12-18T21:55:00+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://hardy1970.github.io/post/2019-12-15-golang-gin-query-parameters-source-code-analysis/</loc>
-    <lastmod>2019-12-13T21:00:00+08:00</lastmod>
   </url>
   
   <url>

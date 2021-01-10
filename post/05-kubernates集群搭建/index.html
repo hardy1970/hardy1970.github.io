@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>基于kubeadm进行Kubernetes集群搭建(v1.18.0) | dreamLinux博客</title>
+    <meta property="og:title" content="基于kubeadm进行Kubernetes集群搭建(v1.18.0) - dreamLinux博客">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2021-01-09T21:00:00&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2021-01-09T21:00:00&#43;08:00'>
+        
+    <meta name="Keywords" content="linux,go语言,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="description" content="基于kubeadm进行Kubernetes集群搭建(v1.18.0)">
+        
+    <meta name="author" content="IT干饭人">
+    <meta property="og:url" content="https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="https://hardy1970.github.io">
+                        dreamLinux博客
+                    </a>
+                
+                <p class="description">专注于Linux、Python、Go、Docker、ELKStack 等开源技术交流分享</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="https://hardy1970.github.io">首页</a>
+                    
+                    <a  href="https://hardy1970.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="https://hardy1970.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="https://hardy1970.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#生产环境部署k8s的2种方式">生产环境部署k8s的2种方式</a></li>
+    <li><a href="#0kubeadm介绍">0.kubeadm介绍</a></li>
+    <li><a href="#1-安装要求">1. 安装要求</a></li>
+    <li><a href="#2-准备环境">2. 准备环境</a></li>
+    <li><a href="#3-所有节点安装dockerkubeadmkubelet">3. 所有节点安装Docker、kubeadm、kubelet</a>
+      <ul>
+        <li><a href="#31-安装docker">3.1 安装Docker</a></li>
+        <li><a href="#32-添加阿里云yum软件源">3.2 添加阿里云YUM软件源</a></li>
+        <li><a href="#33-安装kubeadmkubelet和kubectl">3.3 安装kubeadm，kubelet和kubectl</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-部署kubernetes-master">4. 部署Kubernetes Master</a>
+      <ul>
+        <li><a href="#kubeadm-init-工作流程">kubeadm init 工作流程：</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-加入kubernetes-node">5. 加入Kubernetes Node</a></li>
+    <li><a href="#6-网络方案cni">6. 网络方案（CNI）</a>
+      <ul>
+        <li><a href="#61-calico">6.1 Calico</a></li>
+        <li><a href="#62-flannel">6.2 Flannel</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-测试kubernetes集群">7. 测试kubernetes集群</a></li>
+    <li><a href="#8-部署-dashboard">8. 部署 Dashboard</a></li>
+    <li><a href="#9搭建过程中出现的问题">9.搭建过程中出现的问题</a>
+      <ul>
+        <li><a href="#91-calico-node-pod-状态crashloopbackoff">9.1 calico node pod 状态CrashLoopBackOff</a></li>
+        <li><a href="#92-下载镜像满出现imagepullerror">9.2 下载镜像满，出现imagePullerror</a></li>
+        <li><a href="#93-kubeadm-initjoin-初始化失败">9.3 kubeadm init,join 初始化失败</a></li>
+        <li><a href="#94-pod失败">9.4 pod失败</a></li>
+        <li><a href="#95-kubectl-get-cs-健康检查失败">9.5 kubectl get cs 健康检查失败</a></li>
+        <li><a href="#96-node重新加入节点需要做以下操作">9.6 node重新加入节点，需要做以下操作</a></li>
+      </ul>
+    </li>
+    <li><a href="#10二进制">10.二进制</a></li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">基于kubeadm进行Kubernetes集群搭建(v1.18.0)</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月9日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Kubernetes'>Kubernetes</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="clear" style="display: none">
+            <div class="toc-article">
+                <div class="toc-title">文章目录</div>
+            </div>
+        </div>
+        
+        <div class="post-content">
+            <h2 id="生产环境部署k8s的2种方式">生产环境部署k8s的2种方式</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实验环境</td>
+<td>k8s master/node</td>
+<td>cpu</td>
+<td>2c</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s master/node</td>
+<td>内存</td>
+<td>2G+</td>
+</tr>
+<tr>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+</tr>
+<tr>
+<td>测试环境</td>
+<td>k8s-master</td>
+<td>cpu</td>
+<td>2核</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-master</td>
+<td>内存</td>
+<td>4G</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-master</td>
+<td>硬盘</td>
+<td>20G</td>
+</tr>
+<tr>
+<td>测试环境</td>
+<td>k8s-node</td>
+<td>cpu</td>
+<td>4核</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-node</td>
+<td>内存</td>
+<td>8G</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-node</td>
+<td>硬盘</td>
+<td>20G</td>
+</tr>
+<tr>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+<td>&mdash;&mdash;&mdash;&mdash;&ndash;</td>
+</tr>
+<tr>
+<td>生产环境</td>
+<td>k8s-master</td>
+<td>cpu</td>
+<td>8核</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-master</td>
+<td>内存</td>
+<td>16G</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-master</td>
+<td>硬盘</td>
+<td>100G</td>
+</tr>
+<tr>
+<td>生产环境</td>
+<td>k8s-node</td>
+<td>cpu</td>
+<td>16核</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-node</td>
+<td>内存</td>
+<td>64G</td>
+</tr>
+<tr>
+<td></td>
+<td>k8s-node</td>
+<td>硬盘</td>
+<td>500G</td>
+</tr>
+</tbody>
+</table>
+<h2 id="0kubeadm介绍">0.kubeadm介绍</h2>
+<ul>
+<li>kubeadm是一个工具，提供kubeadm init和kubeadm join ,用于快速部署kubernetes集群</li>
+<li>优点：更简单<br>
+kubeadm是官方社区推出的一个用于快速部署kubernetes集群的工具。<br>
+这个工具能通过两条指令完成一个kubernetes集群的部署：
+<pre><code>  
+# 创建一个 Master 节点
+$ kubeadm init
+# 将一个 Node 节点加入到当前集群中
+$ kubeadm join &lt;Master节点的IP和端口 &gt;
+</code></pre></li>
+</ul>
+<h2 id="1-安装要求">1. 安装要求</h2>
+<p>在开始之前，部署Kubernetes集群机器需要满足以下几个条件：</p>
+<ul>
+<li>一台或多台机器，操作系统 CentOS7.x-86_x64</li>
+<li>硬件配置：2GB或更多RAM，2个CPU或更多CPU，硬盘30GB或更多</li>
+<li>集群中所有机器之间网络互通</li>
+<li>可以访问外网，需要拉取镜像</li>
+<li>禁止swap分区</li>
+</ul>
+<h2 id="2-准备环境">2. 准备环境</h2>
+<p>
+        <img class="mx-auto" alt="kubernetesæ¶æå¾" src="https://blog-1252881505.cos.ap-beijing.myqcloud.com/k8s/single-master.jpg" />   
+    </p>
+<table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>角色</th>
+<th>IP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>node01</td>
+<td>master</td>
+<td>192.168.241.121</td>
+</tr>
+<tr>
+<td>node02</td>
+<td>worker</td>
+<td>192.168.241.122</td>
+</tr>
+<tr>
+<td>node03</td>
+<td>worker</td>
+<td>192.168.241.123</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-b" data-lang="b"><span style="color:#998;font-style:italic">关闭防火墙(所有节点)：
+</span><span style="color:#998;font-style:italic">$ systemctl stop firewalld
+</span><span style="color:#998;font-style:italic">$ systemctl disable firewalld
+</span><span style="color:#998;font-style:italic">
+</span><span style="color:#998;font-style:italic">关闭selinux：
+</span><span style="color:#998;font-style:italic">$ sed </span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">i &#39;s/enforcing/disabled/&#39; /etc/selinux/config  # 永久
+</span><span style="color:#998;font-style:italic">$ setenforce 0  # 临时
+</span><span style="color:#998;font-style:italic">
+</span><span style="color:#998;font-style:italic">关闭swap：
+</span><span style="color:#998;font-style:italic">$ swapoff </span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">a  # 临时
+</span><span style="color:#998;font-style:italic">$ vim /etc/fstab  # 永久
+</span><span style="color:#998;font-style:italic">
+</span><span style="color:#998;font-style:italic">设置主机名：
+</span><span style="color:#998;font-style:italic">$ hostnamectl set</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">hostname </span><span style="color:#008080">&lt;</span><span style="color:#998;font-style:italic">hostname</span><span style="color:#008080">&gt;</span><span style="color:#998;font-style:italic">
+</span><span style="color:#998;font-style:italic">
+</span><span style="color:#998;font-style:italic">在master添加hosts：
+</span><span style="color:#998;font-style:italic">$ cat </span><span style="color:#008080">&gt;&gt;</span><span style="color:#998;font-style:italic"> /etc/hosts </span><span style="color:#008080">&lt;&lt;</span><span style="color:#998;font-style:italic"> EOF
+</span><span style="color:#998;font-style:italic">192</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">168</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">241</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">121   node01
+</span><span style="color:#998;font-style:italic">192</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">168</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">241</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">122   node02
+</span><span style="color:#998;font-style:italic">192</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">168</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">241</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">123   node03
+</span><span style="color:#998;font-style:italic">EOF
+</span><span style="color:#998;font-style:italic">
+</span><span style="color:#998;font-style:italic">将桥接的IPv4流量传递到iptables的链：
+</span><span style="color:#998;font-style:italic">$ cat </span><span style="color:#008080">&gt;</span><span style="color:#998;font-style:italic"> /etc/sysctl</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">d/k8s</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">conf </span><span style="color:#008080">&lt;&lt;</span><span style="color:#998;font-style:italic"> EOF
+</span><span style="color:#998;font-style:italic">net</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">nf</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">call</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">ip6tables = 1
+</span><span style="color:#998;font-style:italic">net</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">nf</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">call</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">iptables = 1
+</span><span style="color:#998;font-style:italic">EOF
+</span><span style="color:#998;font-style:italic">$ sysctl </span><span style="color:#0086b3">--</span><span style="color:#998;font-style:italic">system  # 生效
+</span><span style="color:#998;font-style:italic">#echo &#34;net</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">ipv4</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">ip_forward = 1&#34; </span><span style="color:#008080">&gt;&gt;</span><span style="color:#998;font-style:italic"> /etc/sysctl</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">conf
+</span><span style="color:#998;font-style:italic">#echo &#34;net</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">nf</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">call</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">ip6tables = 1&#34; </span><span style="color:#008080">&gt;&gt;</span><span style="color:#998;font-style:italic"> /etc/sysctl</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">conf
+</span><span style="color:#998;font-style:italic">#echo &#34;net</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">bridge</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">nf</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">call</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">iptables = 1&#34; </span><span style="color:#008080">&gt;&gt;</span><span style="color:#998;font-style:italic"> /etc/sysctl</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">conf
+</span><span style="color:#998;font-style:italic">#sysctl </span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">p
+</span><span style="color:#998;font-style:italic">若提示cannot stat /proc/sys/net/bridge/bridge</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">nf</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">call</span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">ip6tables: No such file or directory
+</span><span style="color:#998;font-style:italic">#modprobe br_netfilter
+</span><span style="color:#998;font-style:italic">
+</span><span style="color:#998;font-style:italic">时间同步：
+</span><span style="color:#998;font-style:italic">$ yum install ntpdate </span><span style="color:#0086b3">-</span><span style="color:#998;font-style:italic">y
+</span><span style="color:#998;font-style:italic">$ ntpdate time</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">windows</span><span style="color:#000080">.</span><span style="color:#998;font-style:italic">com
+</span></code></pre></td></tr></table>
+</div>
+</div><h2 id="3-所有节点安装dockerkubeadmkubelet">3. 所有节点安装Docker、kubeadm、kubelet</h2>
+<p>Kubernetes默认CRI（容器运行时）为Docker，因此先安装Docker</p>
+<h3 id="31-安装docker">3.1 安装Docker</h3>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ wget https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo -O /etc/yum.repos.d/docker-ce.repo
+$ yum -y install docker-ce-18.06.1.ce-3.el7
+$ systemctl <span style="color:#0086b3">enable</span> docker <span style="color:#000;font-weight:bold">&amp;&amp;</span> systemctl start docker
+$ docker --version
+Docker version 18.06.1-ce, build e68fc7a
+<span style="color:#998;font-style:italic"># cat &gt; /etc/docker/daemon.json &lt;&lt; EOF</span>
+<span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#d14">&#34;registry-mirrors&#34;</span>: <span style="color:#000;font-weight:bold">[</span><span style="color:#d14">&#34;https://6kx4zyno.mirror.aliyuncs.com&#34;</span><span style="color:#000;font-weight:bold">]</span>
+<span style="color:#000;font-weight:bold">}</span>
+EOF
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="32-添加阿里云yum软件源">3.2 添加阿里云YUM软件源</h3>
+<pre><code>$ cat &gt; /etc/yum.repos.d/kubernetes.repo &lt;&lt; EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+</code></pre><p>ubuntu系统配置源并安装：
+<a href="https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#%E5%AE%89%E8%A3%85-kubeadm-kubelet-%E5%92%8C-kubectl">https://kubernetes.io/zh/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#%E5%AE%89%E8%A3%85-kubeadm-kubelet-%E5%92%8C-kubectl</a></p>
+<h3 id="33-安装kubeadmkubelet和kubectl">3.3 安装kubeadm，kubelet和kubectl</h3>
+<p>由于版本更新频繁，这里指定版本号部署：</p>
+<pre><code>$ yum install -y kubelet-1.18.0 kubeadm-1.18.0 kubectl-1.18.0
+$ systemctl enable kubelet
+</code></pre><h2 id="4-部署kubernetes-master">4. 部署Kubernetes Master</h2>
+<p>参考文档： <a href="https://kubernetes.io/zh/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file">https://kubernetes.io/zh/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file</a>
+<a href="https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#initializing-your-control-plane-node">https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#initializing-your-control-plane-node</a></p>
+<p>在192.168.241.121（Master）执行。</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubeadm init <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --apiserver-advertise-address<span style="color:#000;font-weight:bold">=</span>192.168.241.121 <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --image-repository registry.aliyuncs.com/google_containers <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --kubernetes-version v1.18.0 <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --service-cidr<span style="color:#000;font-weight:bold">=</span>10.10.0.0/16 <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --pod-network-cidr<span style="color:#000;font-weight:bold">=</span>10.244.0.0/16 <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --ignore-preflight-errors<span style="color:#000;font-weight:bold">=</span>all
+  
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>&ndash;apiserver-advertise-address 集群通告地址</li>
+<li>&ndash;image-repository 由于默认拉取镜像地址k8s.gcr.io国内无法访问，这里指定阿里云镜像仓库地址。</li>
+<li>&ndash;kubernates-version k8s版本，与上面安装的一致</li>
+<li>&ndash;service-cidr 集群内部虚拟网络，pod统一访问入口</li>
+<li>&ndash;pod-network-cidr Pod网络，与下面部署的CNI网络组建yaml中保持一致</li>
+</ul>
+<p>或者使用配置文件引导：</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ vi kubeadm.conf
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+kubernetesVersion: v1.18.0
+imageRepository: registry.aliyuncs.com/google_containers
+networking:
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.10.0.0/16
+
+$ kubeadm init --config kubeadm.conf --ignore-preflight-errors<span style="color:#000;font-weight:bold">=</span>all  
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="kubeadm-init-工作流程">kubeadm init 工作流程：</h3>
+<ul>
+<li>1 安装环境检查，例如swapoff有没有关、机器配置符合不符合</li>
+<li>2 下载镜像 kubeadm config images pull</li>
+<li>3 生成证书，保存路径/etc/kubernetes/pki(k8s、etcd)</li>
+<li>4 [kubeconfig]生成kubeconfig文件</li>
+<li>5 [kubelet-start]生成kubelete配置文件并启动</li>
+<li>6 [control-plane]启动master节点组件</li>
+<li>7 将一些配置文件存储到configmap中，用于其他节点初始化拉取</li>
+<li>8 [mark-control-plane]给master节点打污点，不让pod在上面运行</li>
+<li>9 [bootstrap-token]自动为kubelet颁发证书</li>
+<li>10 [addons] 安装插件 CoreDNS  kube-proxy</li>
+<li>最后拷贝kubectl工具用的kubeconfig到默认路径下</li>
+</ul>
+<pre><code>  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+</code></pre><ul>
+<li>输出其他节点加入master的命令：</li>
+</ul>
+<pre><code>kubeadm join 192.168.241.121:6443 --token zh23d0.z78lgvwru7rkvf0f \
+    --discovery-token-ca-cert-hash sha256:a075da469d637a273ee92863fcc5a1f717b7ce90f3e6c2b4409fc857fe7f0580
+</code></pre><h2 id="5-加入kubernetes-node">5. 加入Kubernetes Node</h2>
+<ul>
+<li>在192.168.241.122/123（Node）执行。</li>
+<li>向集群添加新节点，执行在kubeadm init输出的kubeadm join命令：</li>
+</ul>
+<pre><code>kubeadm join 192.168.241.121:6443 --token zh23d0.z78lgvwru7rkvf0f \
+    --discovery-token-ca-cert-hash sha256:a075da469d637a273ee92863fcc5a1f717b7ce90f3e6c2b4409fc857fe7f0580
+</code></pre><ul>
+<li>默认token有效期为24小时，当过期之后，该token就不可用了。这时就需要重新创建token，操作如下：</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#998;font-style:italic"># kubeadm token create</span>
+<span style="color:#998;font-style:italic"># kubeadm token list</span>
+<span style="color:#998;font-style:italic"># openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2&gt;/dev/null | openssl dgst -sha256 -hex | sed &#39;s/^.* //&#39;</span>
+63bca849e0e01691ae14eab449570284f0c3ddeea590f8da988c07fe2729e924
+<span style="color:#998;font-style:italic"># kubeadm join 192.168.241.121:6443 --token nuja6n.o3jrhsffiqs9swnu --discovery-token-ca-cert-hash sha256:63bca849e0e01691ae14eab449570284f0c3ddeea590f8da988c07fe2729e924</span>
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>kubeadm token create &ndash;print-join-command</p>
+<ul>
+<li><a href="https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-join/">https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-join/</a></li>
+</ul>
+</li>
+<li>
+<p>确认加入节点状态</p>
+</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get nodes  # 节点的kubelet 没有及时向apiserver汇报自己的状态，就会是离线的状态</span>
+  NAME              STATUS     ROLES    AGE   VERSION
+  node01   NotReady   master   17h   v1.18.0
+  node02   NotReady   &lt;none&gt;   17h   v1.18.0
+  node03  NotReady   &lt;none&gt;   17h   v1.18.0
+  
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># journalctl -u kubelet.service &gt; log</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat log</span>
+docker: network plugin is not ready: cni config uninitialized <span style="color:#998;font-style:italic"># 网络插件没有安装</span>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="6-网络方案cni">6. 网络方案（CNI）</h2>
+<p><a href="https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network">https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network</a></p>
+<p>注意：只需要部署下面其中一个，推荐Calico。</p>
+<h3 id="61-calico">6.1 Calico</h3>
+<p>Calico是一个纯三层的数据中心网络方案，Calico支持广泛的平台，包括Kubernetes、OpenStack等。<br>
+Calico 在每一个计算节点利用 Linux Kernel 实现了一个高效的虚拟路由器（ vRouter） 来负责数据转发，而每个 vRouter 通过 BGP 协议负责把自己上运行的 workload 的路由信息向整个 Calico 网络内传播。<br>
+此外，Calico  项目还实现了 Kubernetes 网络策略，提供ACL功能。<br>
+<a href="https://docs.projectcalico.org/getting-started/kubernetes/quickstart">https://docs.projectcalico.org/getting-started/kubernetes/quickstart</a></p>
+<pre><code>wget https://docs.projectcalico.org/manifests/calico.yaml
+</code></pre><ul>
+<li>
+<p>下载完后还需要修改里面配置项：</p>
+<ul>
+<li>定义Pod网络（- name: CALICO_IPV4POOL_CIDR），与前面pod CIDR配置一样，注意缩进</li>
+</ul>
+</li>
+<li>
+<p>修改完后应用启：</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#998;font-style:italic"># kubectl apply -f calico.yaml # 会存在镜像拉不下来的情况，请调整加速器</span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>确认pod情况</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pods -n kube-system</span>
+NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
+kube-system   calico-kube-controllers-7dbc97f587-f4ngh   1/1     Running   <span style="color:#099">0</span>          14m
+kube-system   calico-node-lcjvs                          1/1     Running   <span style="color:#099">0</span>          14m
+kube-system   calico-node-nt8sw                          1/1     Running   <span style="color:#099">0</span>          14m
+kube-system   calico-node-vlpq7                          1/1     Running   <span style="color:#099">0</span>          14m
+kube-system   coredns-7ff77c879f-flmt9                   1/1     Running   <span style="color:#099">0</span>          18m
+kube-system   coredns-7ff77c879f-xvmxq                   1/1     Running   <span style="color:#099">0</span>          18m
+kube-system   etcd-node01                                1/1     Running   <span style="color:#099">0</span>          19m
+kube-system   kube-apiserver-node01                      1/1     Running   <span style="color:#099">0</span>          19m
+kube-system   kube-controller-manager-node01             1/1     Running   <span style="color:#099">0</span>          19m
+kube-system   kube-proxy-f9574                           1/1     Running   <span style="color:#099">0</span>          18m
+kube-system   kube-proxy-kxlrh                           1/1     Running   <span style="color:#099">0</span>          18m
+kube-system   kube-proxy-sdgq2                           1/1     Running   <span style="color:#099">0</span>          18m
+kube-system   kube-scheduler-node01                      1/1     Running   <span style="color:#099">0</span>          19m
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+<h3 id="62-flannel">6.2 Flannel</h3>
+<p>Flannel是CoreOS维护的一个网络组件，Flannel为每个Pod提供全局唯一的IP，Flannel使用ETCD来存储Pod子网与Node IP之间的关系。flanneld守护进程在每台主机上运行，并负责维护ETCD信息和路由数据包。</p>
+<pre><code>wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+sed -i -r &quot;s#quay.io/coreos/flannel:.*-amd64#lizhenliang/flannel:v0.11.0-amd64#g&quot; kube-flannel.yml # 修改国内镜像仓库
+## 部署cni
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+</code></pre><h2 id="7-测试kubernetes集群">7. 测试kubernetes集群</h2>
+<ul>
+<li>验证Pod工作</li>
+<li>验证Pod网络通信</li>
+<li>验证DNS解析</li>
+<li>在Kubernetes集群中创建一个pod，验证是否正常运行：
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl create deployment nginx --image=nginx # 创建一个副本</span>
+deployment.apps/nginx created
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic">#  kubectl expose deployment nginx --port=80 --target-port=80 --type=NodePort # 暴露出来，在浏览器访问，port 是server的端口，target-port是容器端口，type=NodePort 随机端口</span>
+service/nginx exposed
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod,svc</span>
+NAME                        READY   STATUS    RESTARTS   AGE
+pod/nginx-f89759699-vq2hb   1/1     Running   <span style="color:#099">0</span>          94s
+    
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT<span style="color:#000;font-weight:bold">(</span>S<span style="color:#000;font-weight:bold">)</span>        AGE
+service/kubernetes   ClusterIP   10.10.0.1       &lt;none&gt;        443/TCP        23m
+service/nginx        NodePort    10.10.219.107   &lt;none&gt;        80:32389/TCP   66s
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+  
+</code></pre></td></tr></table>
+</div>
+</div><p>访问地址：http://NodeIP:32389  http://NodeIP:32389  http://NodeIP:32389</p>
+</li>
+</ul>
+<h2 id="8-部署-dashboard">8. 部署 Dashboard</h2>
+<ul>
+<li>
+<p>下载dashboard使用的yml</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># vim /etc/hosts # 新增 199.232.4.133 raw.githubusercontent.com</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.4/aio/deploy/recommended.yaml</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># vim recommended.yaml # 默认Dashboard只能集群内部访问，修改Service为NodePort类型，暴露到外部</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic">#</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl apply -f recommended.yaml</span>
+namespace/kubernetes-dashboard unchanged
+serviceaccount/kubernetes-dashboard unchanged
+service/kubernetes-dashboard unchanged
+secret/kubernetes-dashboard-certs unchanged
+secret/kubernetes-dashboard-csrf unchanged
+secret/kubernetes-dashboard-key-holder unchanged
+configmap/kubernetes-dashboard-settings unchanged
+role.rbac.authorization.k8s.io/kubernetes-dashboard unchanged
+clusterrole.rbac.authorization.k8s.io/kubernetes-dashboard unchanged
+rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard unchanged
+clusterrolebinding.rbac.authorization.k8s.io/kubernetes-dashboard unchanged
+deployment.apps/kubernetes-dashboard unchanged
+service/dashboard-metrics-scraper created
+deployment.apps/dashboard-metrics-scraper created
+  
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>recommended.yaml 修改部分</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>Service <span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">labels</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">k8s-app</span>:<span style="color:#bbb"> </span>kubernetes-dashboard<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>kubernetes-dashboard<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">namespace</span>:<span style="color:#bbb"> </span>kubernetes-dashboard<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">spec</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">type</span>:<span style="color:#bbb"> </span>NodePort<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">ports</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">port</span>:<span style="color:#bbb"> </span><span style="color:#099">443</span><span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">targetPort</span>:<span style="color:#bbb"> </span><span style="color:#099">8443</span><span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">nodePort</span>:<span style="color:#bbb"> </span><span style="color:#099">30001</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">selector</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">k8s-app</span>:<span style="color:#bbb"> </span>kubernetes-dashboard<span style="color:#bbb">
+</span><span style="color:#bbb">    
+</span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>创建dashboard</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl create serviceaccount dashboard-admin -n kube-system</span>
+serviceaccount/dashboard-admin created <span style="color:#998;font-style:italic"># 创建用户</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin  # 给用户授权 </span>
+clusterrolebinding.rbac.authorization.k8s.io/dashboard-admin created
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl describe secrets -n kube-system $(kubectl -n kube-system get secret | awk &#39;/dashboard-admin/{print $1}&#39;) # 获取token</span>
+Name:         dashboard-admin-token-fvlvg
+Namespace:    kube-system
+Labels:       &lt;none&gt;
+Annotations:  kubernetes.io/service-account.name: dashboard-admin
+              kubernetes.io/service-account.uid: cddfba91-785b-4522-9628-858bba7c8c36
+    
+Type:  kubernetes.io/service-account-token
+    
+<span style="color:#008080">Data</span>
+<span style="color:#000;font-weight:bold">====</span>
+namespace:  <span style="color:#099">11</span> bytes
+token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IlA1Nk9TaVdRY0tkY2c3V1p0YV9oc21fbnZMTGlFWEpuVThXVWdZU0NFMjgifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tZnZsdmciLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiY2RkZmJhOTEtNzg1Yi00NTIyLTk2MjgtODU4YmJhN2M4YzM2Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmRhc2hib2FyZC1hZG1pbiJ9.eix86mR1ekTIGGoDP65aZTTLObW8taePXLlck5gIk8geJTLDu6n49c3uwEBtdz_l_2fDpD7p9Krdq8JpdODjMacKbKhnLYd1_bi8jjWa8WmxDe9PMsUGYj1Tab8mTVU7ZZB9hrpeMuFVdh-RUZCZPfB2oiPc4FMz5_TH5jVvkSq_CmrFCkxKCFMeTdrgXzmDsoZnUvxXO-V9FFsCCU43d5M2xEk8RBQz2IghoIFN8co8jKCbYTi66abBBhGUiDMyCoJT1ICeFuVaUfTbGEzNFfAGXjgf6QB_dTpcsQ3Nb1JHbfKJPPvXWPYhPAzhncT9e4l7TT6yjcxYNaAqymsYRQ
+ca.crt:     <span style="color:#099">1025</span> bytes
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>访问地址：https://NodeIP:30001</li>
+</ul>
+</li>
+</ul>
+<h2 id="9搭建过程中出现的问题">9.搭建过程中出现的问题</h2>
+<h3 id="91-calico-node-pod-状态crashloopbackoff">9.1 calico node pod 状态CrashLoopBackOff</h3>
+<ul>
+<li>配置文件有问题</li>
+<li>宿主机网卡不太常规</li>
+</ul>
+<h3 id="92-下载镜像满出现imagepullerror">9.2 下载镜像满，出现imagePullerror</h3>
+<ul>
+<li>可以手动在每个节点手动pull
+<pre><code>[root@node01 ~]# grep image calico.yaml 
+         image: calico/cni:v3.16.4
+         image: calico/cni:v3.16.4
+         image: calico/pod2daemon-flexvol:v3.16.4
+         image: calico/node:v3.16.4
+         image: calico/kube-controllers:v3.16.4
+</code></pre></li>
+</ul>
+<h3 id="93-kubeadm-initjoin-初始化失败">9.3 kubeadm init,join 初始化失败</h3>
+<ul>
+<li>kubeadm reset 清空当前机器kubeadm执行记录</li>
+</ul>
+<h3 id="94-pod失败">9.4 pod失败</h3>
+<ul>
+<li>kubectl describe pod pod名称 -n 空间名称  查看具体一次</li>
+<li>kubectl logs pod名称 -n kube-system</li>
+</ul>
+<h3 id="95-kubectl-get-cs-健康检查失败">9.5 kubectl get cs 健康检查失败</h3>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">   <span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># vim /etc/kubernetes/manifests/kube-scheduler.yaml # 注释掉 --port=0 </span>
+   <span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl delete pod kube-scheduler-k8s-master -n kube-system # 会自动重启</span>
+   <span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pods -n kube-system</span>
+   NAME                                       READY   STATUS    RESTARTS   AGE
+   calico-kube-controllers-7567d8d9dd-gmj8t   1/1     Running   <span style="color:#099">0</span>          13h
+   calico-node-4nqss                          1/1     Running   <span style="color:#099">0</span>          13h
+   calico-node-9jxjl                          1/1     Running   <span style="color:#099">0</span>          13h
+   calico-node-b2kwq                          1/1     Running   <span style="color:#099">0</span>          13h
+   coredns-7ff77c879f-kd6jn                   1/1     Running   <span style="color:#099">0</span>          13h
+   coredns-7ff77c879f-lv2jp                   1/1     Running   <span style="color:#099">0</span>          13h
+   etcd-node01                                1/1     Running   <span style="color:#099">0</span>          13h
+   kube-apiserver-node01                      1/1     Running   <span style="color:#099">0</span>          13h
+   kube-controller-manager-node01             1/1     Running   <span style="color:#099">3</span>          13h
+   kube-proxy-gp86t                           1/1     Running   <span style="color:#099">0</span>          13h
+   kube-proxy-nz9rq                           1/1     Running   <span style="color:#099">0</span>          13h
+   kube-proxy-vp5pw                           1/1     Running   <span style="color:#099">0</span>          13h
+   kube-scheduler-node01                      1/1     Running   <span style="color:#099">2</span>          13h
+   <span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="96-node重新加入节点需要做以下操作">9.6 node重新加入节点，需要做以下操作</h3>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">   systemctl stop kubelet
+   rm -rf /var/lib/kubelet/pki/*
+   rm -rf /etc/kubernetes/pki/*
+   rm -rf /etc/kubernetes/kubelet.conf
+   rm -rf /etc/cni/net.d/*
+   kubeadm join *******
+
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="10二进制">10.二进制</h2>
+<ul>
+<li>推荐，从官方下载发行版本的二进制包，手动部署每个组件，组成kubernates集群</li>
+<li>下载地址：https://github.com/kubernetes/kubernetes/releases</li>
+<li>缺点：部署的成本会高一点</li>
+</ul>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="https://hardy1970.github.io">IT干饭人</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/">https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/golang-gin-parameters-in-path/">Golang Gin 实战（三）| 路由参数</a></li>
+        
+        <li><a href="/2019/12/18/golang-gin-query-parameters-array-map.html">Golang Gin 实战（五）| 接收数组和 Map</a></li>
+        
+        <li><a href="/about/">关于我</a></li>
+        
+        <li><a href="/archives/">归档</a></li>
+        
+        <li><a href="/search/">搜索</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            <ul class="clearfix">
+                
+                <li><a href='/tags/Kubernetes'>Kubernetes</a></li>
+                
+            </ul>
+            
+        </div>
+    </article>
+    
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "yourdiscussshortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="https://hardy1970.github.io">dreamLinux博客 By IT干饭人</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='https://hardy1970.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="https://hardy1970.github.io">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" title="基于kubeadm进行Kubernetes集群搭建(v1.18.0)">基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/golang-gin-parameters-in-path/" title="Golang Gin 实战（三）| 路由参数">Golang Gin 实战（三）| 路由参数</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/2019/12/18/golang-gin-query-parameters-array-map.html" title="Golang Gin 实战（五）| 接收数组和 Map">Golang Gin 实战（五）| 接收数组和 Map</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title" style="color:red">福利派送</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a href="https://www.aliyun.com/minisite/goods?userCode=jdg9oj97&amp;share_source=copy_link" title="【2019双12】ALL IN CLoud 低至1折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1_rYHo7P2gK0jSZPxXXacQpXa-690-388.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://cloud.tencent.com/act/cps/redirect?redirect=1048&amp;cps_key=14ff722692ac784fa8c3301c8c28d924&amp;from=console" title="助力产业智慧升级，云服务器首年88元起，更有千元代金券礼包免费领！" target="_blank" style="color:red">
+                
+                    <img src="https://upload-dianshi-1255598498.file.myqcloud.com/345-7c71532bd4935fbdd9a67c1a71e577b1767b805c.200%E7%89%88%E6%9C%ACB.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://www.aliyun.com/acts/limit-buy?userCode=jdg9oj97" title="【渠道专享低折扣】11月特惠 限时2折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1hblJl7Y2gK0jSZFgXXc5OFXa-750-400.jpg">
+                
+            </a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="https://hardy1970.github.io/categories/Golang/">Golang (2)</a></li>
+    
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+    <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/golang/">golang</a>
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://hardy1970.github.io/" title="dreamLinux博客">dreamLinux博客</a>
+        </li>
+        
+        <li>
+            <a target="_blank" href="http://yuedu.baidu.com/ebook/14a722970740be1e640e9a3e" title="Android Gradle权威指南">Android Gradle权威指南</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="https://hardy1970.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

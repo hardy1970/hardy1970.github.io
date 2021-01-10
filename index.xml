@@ -6,13 +6,22 @@
     <description>Recent content on dreamLinux博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Sun, 13 Dec 2020 21:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 09 Jan 2021 21:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>基于kubeadm进行Kubernetes集群搭建(v1.18.0)</title>
+      <link>https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/</link>
+      <pubDate>Sat, 09 Jan 2021 21:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/</guid>
+      <description>生产环境部署k8s的2种方式 实验环境 k8s master/node cpu 2c k8s master/node 内存 2G+ &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; 测试环境 k8s-master cpu 2核 k8s-master 内存 4G k8s-master 硬盘 20G 测试环境 k8s-node cpu 4核 k8s-node 内存 8G k8s-node 硬盘 20G &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; 生产环境 k8s-master cpu 8核 k8s-master 内存 16G k8s-master 硬盘 100G 生产环境 k8s-node cpu 16核 k8s-node 内存 64G k8s-node 硬盘 500G 0.kubeadm介绍 kubeadm是一个工具，提供kubeadm init和ku</description>
+    </item>
+    
     <item>
       <title>Golang Gin 实战（三）| 路由参数</title>
-      <link>https://hardy1970.github.io/post/2019-12-13-golang-gin-parameters-in-path/</link>
+      <link>https://hardy1970.github.io/post/golang-gin-parameters-in-path/</link>
       <pubDate>Sun, 13 Dec 2020 21:00:00 +0800</pubDate>
       
-      <guid>https://hardy1970.github.io/post/2019-12-13-golang-gin-parameters-in-path/</guid>
+      <guid>https://hardy1970.github.io/post/golang-gin-parameters-in-path/</guid>
       <description>标题 段落内容 标题 段落内容 标题 段落内容 标题 段落内容 标题 段落内容</description>
     </item>
     
@@ -22,15 +31,6 @@
       <pubDate>Wed, 18 Dec 2019 21:55:00 +0800</pubDate>
       
       <guid>https://hardy1970.github.io/2019/12/18/golang-gin-query-parameters-array-map.html</guid>
-      <description>标题 段落内容 标题 段落内容 标题 段落内容 标题 段落内容 标题 段落内容</description>
-    </item>
-    
-    <item>
-      <title>Golang Gin 实战（三）| 路由参数</title>
-      <link>https://hardy1970.github.io/post/2019-12-15-golang-gin-query-parameters-source-code-analysis/</link>
-      <pubDate>Fri, 13 Dec 2019 21:00:00 +0800</pubDate>
-      
-      <guid>https://hardy1970.github.io/post/2019-12-15-golang-gin-query-parameters-source-code-analysis/</guid>
       <description>标题 段落内容 标题 段落内容 标题 段落内容 标题 段落内容 标题 段落内容</description>
     </item>
     
