@@ -152,6 +152,7 @@
         <li><a href="#31-安装docker">3.1 安装Docker</a></li>
         <li><a href="#32-添加阿里云yum软件源">3.2 添加阿里云YUM软件源</a></li>
         <li><a href="#33-安装kubeadmkubelet和kubectl">3.3 安装kubeadm，kubelet和kubectl</a></li>
+        <li><a href="#34-安装kubectl-命令行补全工具">3.4 安装kubectl 命令行补全工具</a></li>
       </ul>
     </li>
     <li><a href="#4-部署kubernetes-master">4. 部署Kubernetes Master</a>
@@ -527,7 +528,23 @@ EOF
 <p>由于版本更新频繁，这里指定版本号部署：</p>
 <pre><code>$ yum install -y kubelet-1.18.0 kubeadm-1.18.0 kubectl-1.18.0
 $ systemctl enable kubelet
-</code></pre><h2 id="4-部署kubernetes-master">4. 部署Kubernetes Master</h2>
+
+</code></pre><h3 id="34-安装kubectl-命令行补全工具">3.4 安装kubectl 命令行补全工具</h3>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># yum install -y  bash-completion</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># source &lt;(kubectl completion bash) </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># echo &#34;source &lt;(kubectl completion bash)&#34; &gt;&gt; /etc/profile</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># source  /etc/profile</span>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="4-部署kubernetes-master">4. 部署Kubernetes Master</h2>
 <p>参考文档： <a href="https://kubernetes.io/zh/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file">https://kubernetes.io/zh/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file</a>
 <a href="https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#initializing-your-control-plane-node">https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#initializing-your-control-plane-node</a></p>
 <p>在192.168.241.121（Master）执行。</p>
@@ -1166,6 +1183,10 @@ ca.crt:     <span style="color:#099">1025</span> bytes
 <ul class="widget-list">
     
     <li>
+        <a href="https://hardy1970.github.io/post/10-%E5%9C%A8k8s%E5%B9%B3%E5%8F%B0%E9%83%A8%E7%BD%B2%E4%B8%80%E4%B8%AA%E7%BD%91%E7%AB%99/" title="在k8s平台部署一个网站">在k8s平台部署一个网站</a>
+    </li>
+    
+    <li>
         <a href="https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" title="基于kubeadm进行Kubernetes集群搭建(v1.18.0)">基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a>
     </li>
     
@@ -1219,7 +1240,7 @@ ca.crt:     <span style="color:#099">1025</span> bytes
     
     <li><a href="https://hardy1970.github.io/categories/Golang/">Golang (2)</a></li>
     
-    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (1)</a></li>
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (2)</a></li>
     
 </ul>
     </section>
