@@ -3,6 +3,11 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://hardy1970.github.io/post/10-deploy-demo-on-k8s/</loc>
+    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://hardy1970.github.io/categories/</loc>
     <lastmod>2021-01-10T21:00:00+08:00</lastmod>
   </url>
@@ -33,13 +38,103 @@
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/post/10-%E5%9C%A8k8s%E5%B9%B3%E5%8F%B0%E9%83%A8%E7%BD%B2%E4%B8%80%E4%B8%AA%E7%BD%91%E7%AB%99/</loc>
-    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/post/05-kubernetes-network/</loc>
+    <lastmod>2021-01-09T13:30:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/post/05-kubernates%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/</loc>
-    <lastmod>2021-01-09T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/tags/Ingress/</loc>
+    <lastmod>2021-01-09T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/network/</loc>
+    <lastmod>2021-01-09T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/04-kubernates-schedule/</loc>
+    <lastmod>2021-01-09T13:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/pod/</loc>
+    <lastmod>2021-01-09T13:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/03-kubernetes-life-cycle/</loc>
+    <lastmod>2021-01-09T11:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Deployment/</loc>
+    <lastmod>2021-01-09T11:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/scale/</loc>
+    <lastmod>2021-01-09T11:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Service/</loc>
+    <lastmod>2021-01-09T11:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/02-kubernates-monitor-logs/</loc>
+    <lastmod>2021-01-09T10:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/logs/</loc>
+    <lastmod>2021-01-09T10:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/monitor/</loc>
+    <lastmod>2021-01-09T10:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/01-kubernates-install/</loc>
+    <lastmod>2021-01-08T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Calico/</loc>
+    <lastmod>2021-01-08T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/cni/</loc>
+    <lastmod>2021-01-08T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Flannel/</loc>
+    <lastmod>2021-01-08T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/kubeadm/</loc>
+    <lastmod>2021-01-08T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/00-kubernates-command/</loc>
+    <lastmod>2021-01-08T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/bash-completion/</loc>
+    <lastmod>2021-01-08T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/kubectl/</loc>
+    <lastmod>2021-01-08T21:00:00+08:00</lastmod>
   </url>
   
   <url>

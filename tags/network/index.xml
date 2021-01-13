@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>network on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/network/</link>
+    <description>Recent content in network on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Sat, 09 Jan 2021 13:30:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/network/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>05 Kubernetes 网络</title>
+      <link>https://hardy1970.github.io/post/05-kubernetes-network/</link>
+      <pubDate>Sat, 09 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/05-kubernetes-network/</guid>
+      <description>Service存在的意义 防止Pod失联（服务发现） 定义一组Pod的访问策略（负载均衡） Pod与Service的关系 通过label-selector相关联 通过service实现pod的负载均衡（TCP/UDP 4层） Service三种类型 ClusterIP(默认类型): 集群内部使用 NodePort:</description>
+    </item>
+    
+  </channel>
+</rss>

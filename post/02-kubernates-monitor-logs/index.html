@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>02 Kubernetes 监控与日志 | dreamLinux博客</title>
+    <meta property="og:title" content="02 Kubernetes 监控与日志 - dreamLinux博客">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2021-01-09T10:00:00&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2021-01-09T10:00:00&#43;08:00'>
+        
+    <meta name="Keywords" content="linux,go语言,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="description" content="02 Kubernetes 监控与日志">
+        
+    <meta name="author" content="IT干饭人">
+    <meta property="og:url" content="https://hardy1970.github.io/post/02-kubernates-monitor-logs/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="https://hardy1970.github.io">
+                        dreamLinux博客
+                    </a>
+                
+                <p class="description">专注于Linux、Python、Go、Docker、ELKStack 等开源技术交流分享</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="https://hardy1970.github.io">首页</a>
+                    
+                    <a  href="https://hardy1970.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="https://hardy1970.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="https://hardy1970.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#kubernates监控">kubernates监控</a>
+      <ul>
+        <li><a href="#查看集群资源状况">查看集群资源状况</a></li>
+        <li><a href="#监控集群资源利用率">监控集群资源利用率</a></li>
+      </ul>
+    </li>
+    <li><a href="#管理k8s组件日志">管理k8s组件日志</a>
+      <ul>
+        <li><a href="#k8s-cluster里面部署的应用程序">k8s Cluster里面部署的应用程序</a></li>
+        <li><a href="#systemd-守护进程管理的组件">systemd 守护进程管理的组件</a></li>
+        <li><a href="#pod-部署的组件">pod 部署的组件</a></li>
+        <li><a href="#系统日志">系统日志</a></li>
+        <li><a href="#宿主机日志文件">宿主机日志文件</a></li>
+      </ul>
+    </li>
+    <li><a href="#管理k8s应用日志">管理k8s应用日志</a>
+      <ul>
+        <li><a href="#标准输出">标准输出</a></li>
+        <li><a href="#非标准输出如果程序中的日志落地到具体的文件处理方法有两种">非标准输出，如果程序中的日志落地到具体的文件，处理方法有两种</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">02 Kubernetes 监控与日志</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月9日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Kubernetes'>Kubernetes</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="clear" style="display: none">
+            <div class="toc-article">
+                <div class="toc-title">文章目录</div>
+            </div>
+        </div>
+        
+        <div class="post-content">
+            <h2 id="kubernates监控">kubernates监控</h2>
+<h3 id="查看集群资源状况">查看集群资源状况</h3>
+<p>二进制搭建后，看不到master节点，kubectl get nod只能列出当前节点，如果master节点没有安装kubelet，kubectl get node就看不到master节点。</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">59
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">60
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">61
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">62
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">63
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">64
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">65
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">66
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">67
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">68
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl api-resources # 列出k8s所有支持的资源 名字、缩写、分组、是否支持命名空间 kind </span>
+NAME                              SHORTNAMES   APIGROUP                       NAMESPACED   KIND
+bindings                                                                      <span style="color:#0086b3">true</span>         Binding
+componentstatuses                 cs                                          <span style="color:#0086b3">false</span>        ComponentStatus
+configmaps                        cm                                          <span style="color:#0086b3">true</span>         ConfigMap
+endpoints                         ep                                          <span style="color:#0086b3">true</span>         Endpoints
+events                            ev                                          <span style="color:#0086b3">true</span>         Event
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get cs # 查看master节点上组件的状态</span>
+NAME                 STATUS    MESSAGE             ERROR
+scheduler            Healthy   ok                  <span style="color:#998;font-style:italic"># 调度  </span>
+controller-manager   Healthy   ok                  <span style="color:#998;font-style:italic"># 控制器</span>
+etcd-0               Healthy   <span style="color:#000;font-weight:bold">{</span><span style="color:#d14">&#34;health&#34;</span>:<span style="color:#d14">&#34;true&#34;</span><span style="color:#000;font-weight:bold">}</span>   <span style="color:#998;font-style:italic"># 数据库</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl cluster-info # 查看api-server代理的URL，1 k8s集群的统一入口，2 协作其它组件</span>
+Kubernetes master is running at https://192.168.241.121:6443
+KubeDNS is running at https://192.168.241.121:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use <span style="color:#d14">&#39;kubectl cluster-info dump&#39;</span>.
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl cluster-info dump # 查看集群更详细的信息。</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl describe pod nginx-f89759699-974qr # 查看某个资源的详情</span>
+Name:         nginx-f89759699-vq2hb
+Namespace:    default
+Priority:     <span style="color:#099">0</span>
+Node:         node03/192.168.241.123
+Start Time:   Mon, <span style="color:#099">07</span> Dec <span style="color:#099">2020</span> 03:12:48 +0800
+Labels:       <span style="color:#008080">app</span><span style="color:#000;font-weight:bold">=</span>nginx
+              pod-template-hash<span style="color:#000;font-weight:bold">=</span>f89759699
+Annotations:  cni.projectcalico.org/podIP: 10.244.186.194/32
+              cni.projectcalico.org/podIPs: 10.244.186.194/32
+Status:       Running
+IP:           10.244.186.194
+IPs:
+  IP:           10.244.186.194
+Controlled By:  ReplicaSet/nginx-f89759699
+Containers:
+  nginx:
+    Container ID:   docker://c964830e15b68fb8811e447aeddc807dba11f696961a0331149b92da9e648d37
+    Image:          nginx
+    Image ID:       docker-pullable://nginx@sha256:4cf620a5c81390ee209398ecc18e5fb9dd0f5155cd82adcbae532fec94006fb9
+    Port:           &lt;none&gt;
+    Host Port:      &lt;none&gt;
+    State:          Running
+      Started:      Mon, <span style="color:#099">07</span> Dec <span style="color:#099">2020</span> 03:13:41 +0800
+    Ready:          True
+    Restart Count:  <span style="color:#099">0</span>
+    Environment:    &lt;none&gt;
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-wl5tg <span style="color:#000;font-weight:bold">(</span>ro<span style="color:#000;font-weight:bold">)</span>
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  default-token-wl5tg:
+    Type:        Secret <span style="color:#000;font-weight:bold">(</span>a volume populated by a Secret<span style="color:#000;font-weight:bold">)</span>
+    SecretName:  default-token-wl5tg
+    Optional:    <span style="color:#0086b3">false</span>
+QoS Class:       BestEffort
+Node-Selectors:  &lt;none&gt;
+Tolerations:     node.kubernetes.io/not-ready:NoExecute <span style="color:#000;font-weight:bold">for</span> 300s
+                 node.kubernetes.io/unreachable:NoExecute <span style="color:#000;font-weight:bold">for</span> 300s
+Events:          &lt;none&gt;
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod nginx-f89759699-974qr -w # 实时看资源的状态</span>
+NAME                    READY   STATUS    RESTARTS   AGE
+nginx-f89759699-974qr   1/1     Running   <span style="color:#099">0</span>          145m
+
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="监控集群资源利用率">监控集群资源利用率</h3>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl top node # 查看资源利用率，数据没有给top这个命令提供支持，要完成这个top命令可用，需要部署一个metrics server</span>
+Error from server <span style="color:#000;font-weight:bold">(</span>NotFound<span style="color:#000;font-weight:bold">)</span>: the server could not find the requested resource <span style="color:#000;font-weight:bold">(</span>get services http:heapster:<span style="color:#000;font-weight:bold">)</span>
+</code></pre></td></tr></table>
+</div>
+</div><h4 id="cadvisor-负责数据的采集提供给k8s使用">cAdvisor 负责数据的采集，提供给k8s使用。</h4>
+<p>Metrics-server是一个集群范围的资源使用情况的数据聚合器，作为一个应用部署在集群中，Metric server从每个节点上kubelet API收集指标（cAvisor内置到了kubelet中，通过kubelet api暴露出来的，是https地址），通过kubernates聚合器注册在Master APIServer中。</p>
+<ul>
+<li>Metrics-server 安装</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 59
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 60
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 61
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 62
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 63
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 64
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 65
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 66
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 67
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 68
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 69
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 70
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 71
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 72
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 73
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 74
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 75
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 76
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 77
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 78
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 79
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 80
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 81
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 82
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 83
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 84
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 85
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 86
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 87
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 88
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 89
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 90
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 91
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 92
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 93
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 94
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 95
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 96
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 97
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 98
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 99
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">100
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">101
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">102
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">103
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">104
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">105
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">106
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">107
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">108
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">109
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">110
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># wget https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.7/components.yaml</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># vim components.yaml </span>
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+  template:
+    metadata:
+      name: metrics-server
+      labels:
+        k8s-app: metrics-server
+    spec:
+      serviceAccountName: metrics-server
+      volumes:
+      <span style="color:#998;font-style:italic"># mount in tmp so we can safely use from-scratch images and/or read-only containers</span>
+      - name: tmp-dir
+        emptyDir: <span style="color:#000;font-weight:bold">{}</span>
+      containers:
+      - name: metrics-server
+        image: juestnow/metrics-server:v0.3.7 <span style="color:#998;font-style:italic">#如果无法下载的话，修改 镜像地址为可下载的镜像源 lizhenliang/metrics-server:v0.3.7</span>
+        imagePullPolicy: IfNotPresent
+        args:
+          - --cert-dir<span style="color:#000;font-weight:bold">=</span>/tmp
+          - --secure-port<span style="color:#000;font-weight:bold">=</span><span style="color:#099">4443</span>
+          - --kubelet-insecure-tls  <span style="color:#998;font-style:italic"># 新增 --kubelet-insecure-tls 代表Metrics-server 访问kubelet-api 跳过 https证书的验证</span>
+          - --kubelet-preferred-address-types<span style="color:#000;font-weight:bold">=</span>InternalIP <span style="color:#998;font-style:italic"># 新增 --kubelet-preferred-address-type=InternalIP，Metrics-server 以IP访问kubelet的地址， --kubelet-preferred-address-types=InternalIP代表以节点的内部IP</span>
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl describe node node01|grep InternalIP</span>
+  InternalIP:  192.168.241.121​
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic">#  kubectl apply -f components.yaml</span>
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl top pods </span>
+NAME                          CPU<span style="color:#000;font-weight:bold">(</span>cores<span style="color:#000;font-weight:bold">)</span>   MEMORY<span style="color:#000;font-weight:bold">(</span>bytes<span style="color:#000;font-weight:bold">)</span>   
+aliang-666-74689c47f4-5cdgh   0m           2Mi             
+nginx-f89759699-gjl52         0m           3Mi     
+<span style="color:#998;font-style:italic"># 确认是否正常收到k8s集群信息，Status 为true 说明是正常，如果是false，再观察事件信息，看是否是其它问题</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get apiservices</span>
+NAME                                   SERVICE                      AVAILABLE   AGE
+v1.                                    Local                        True        2d14h
+v1.admissionregistration.k8s.io        Local                        True        2d14h
+v1.apiextensions.k8s.io                Local                        True        2d14h
+v1.apps                                Local                        True        2d14h
+v1.authentication.k8s.io               Local                        True        2d14h
+v1.authorization.k8s.io                Local                        True        2d14h
+v1.autoscaling                         Local                        True        2d14h
+v1.batch                               Local                        True        2d14h
+v1.coordination.k8s.io                 Local                        True        2d14h
+v1.crd.projectcalico.org               Local                        True        2d14h
+v1.networking.k8s.io                   Local                        True        2d14h
+v1.rbac.authorization.k8s.io           Local                        True        2d14h
+v1.scheduling.k8s.io                   Local                        True        2d14h
+v1.storage.k8s.io                      Local                        True        2d14h
+v1beta1.admissionregistration.k8s.io   Local                        True        2d14h
+v1beta1.apiextensions.k8s.io           Local                        True        2d14h
+v1beta1.authentication.k8s.io          Local                        True        2d14h
+v1beta1.authorization.k8s.io           Local                        True        2d14h
+v1beta1.batch                          Local                        True        2d14h
+v1beta1.certificates.k8s.io            Local                        True        2d14h
+v1beta1.coordination.k8s.io            Local                        True        2d14h
+v1beta1.discovery.k8s.io               Local                        True        2d14h
+v1beta1.events.k8s.io                  Local                        True        2d14h
+v1beta1.extensions                     Local                        True        2d14h
+v1beta1.metrics.k8s.io                 kube-system/metrics-server   True        38m
+v1beta1.networking.k8s.io              Local                        True        2d14h
+v1beta1.node.k8s.io                    Local                        True        2d14h
+v1beta1.policy                         Local                        True        2d14h
+v1beta1.rbac.authorization.k8s.io      Local                        True        2d14h
+v1beta1.scheduling.k8s.io              Local                        True        2d14h
+v1beta1.storage.k8s.io                 Local                        True        2d14h
+v2beta1.autoscaling                    Local                        True        2d14h
+v2beta2.autoscaling                    Local                        True        2d14h
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl describe apiservices v1beta1.metrics.k8s.io</span>
+ Name:         v1beta1.metrics.k8s.io
+ Namespace:    
+ Labels:       &lt;none&gt;
+ Annotations:  API Version:  apiregistration.k8s.io/v1
+ Kind:         APIService
+ Metadata:
+   Creation Timestamp:  2020-12-07T06:22:38Z
+   Resource Version:    <span style="color:#099">99689</span>
+   Self Link:           /apis/apiregistration.k8s.io/v1/apiservices/v1beta1.metrics.k8s.io
+   UID:                 aabccf16-2507-442a-b401-7c94cb98cb9d
+ Spec:
+   Group:                     metrics.k8s.io
+   Group Priority Minimum:    <span style="color:#099">100</span>
+   Insecure Skip TLS Verify:  <span style="color:#0086b3">true</span>
+   Service:
+     Name:            metrics-server
+     Namespace:       kube-system
+     Port:            <span style="color:#099">443</span>
+   Version:           v1beta1
+   Version Priority:  <span style="color:#099">100</span>
+ Status:
+   Conditions:
+     Last Transition Time:  2020-12-07T06:23:09Z
+     Message:               all checks passed
+     Reason:                Passed
+     Status:                True
+     Type:                  Available
+ Events:                    &lt;none&gt;
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl top pods #pod消耗</span>
+NAME                          CPU<span style="color:#000;font-weight:bold">(</span>cores<span style="color:#000;font-weight:bold">)</span>   MEMORY<span style="color:#000;font-weight:bold">(</span>bytes<span style="color:#000;font-weight:bold">)</span>   
+aliang-666-74689c47f4-5cdgh   0m           2Mi             
+nginx-f89759699-gjl52         0m           3Mi             
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl top node  #节点消耗</span>
+NAME     CPU<span style="color:#000;font-weight:bold">(</span>cores<span style="color:#000;font-weight:bold">)</span>   CPU%   MEMORY<span style="color:#000;font-weight:bold">(</span>bytes<span style="color:#000;font-weight:bold">)</span>   MEMORY%   
+node01   418m         20%    1513Mi          41%       
+node02   246m         12%    812Mi           47%       
+node03   224m         11%    837Mi           48%    
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="管理k8s组件日志">管理k8s组件日志</h2>
+<h3 id="k8s-cluster里面部署的应用程序">k8s Cluster里面部署的应用程序</h3>
+<ul>
+<li>标准书输出</li>
+<li>日志文件</li>
+</ul>
+<h3 id="systemd-守护进程管理的组件">systemd 守护进程管理的组件</h3>
+<pre><code>  [root@node01 ~]# journalctl -u kubelet -f
+  -- Logs begin at Fri 2020-12-04 09:22:13 CST. --
+  Dec 07 02:55:15 node01 kubelet[87577]: E1207 02:55:15.361287   87577 plugins.go:729] Error dynamically probing plugins: Error creating Flexvolume plugin from directory nodeagent~uds, skipping. Error: unexpected end of JSON input
+  Dec 07 02:55:15 node01 kubelet[87577]: E1207 02:55:15.362956   87577 driver-call.go:266] Failed to unmarshal output for command: init, output: &quot;&quot;, error: unexpected end of JSON input
+  Dec 07 02:55:15 node01 kubelet[87577]: W1207 02:55:15.363014   87577 driver-call.go:149] FlexVolume: driver call failed: executable: /usr/libexec/kubernetes/kubelet-plugins/volume/exec/nodeagent~uds/uds, args: [init], error: fork/exec /usr/libexec/kubernetes/kubelet-plugins/volume/exec/nodeagent~uds/uds: no such file or directory, output: &quot;&quot;
+  Dec 07 02:55:15 node01 kubelet[87577]: E1207 02:55:15.363352   87577 plugins.go:729] Error dynamically probing plugins: Error creating Flexvolume plugin from directory nodeagent~uds, skipping. Error: unexpected end of JSON input
+  Dec 07 02:55:15 node01 kubelet[87577]: E1207 02:55:15.364779   87577 driver-call.go:266] Failed to unmarshal output for command: init, output: &quot;&quot;, error: unexpected end of JSON input
+  Dec 07 02:55:15 node01 kubelet[87577]: W1207 02:55:15.364963   87577 driver-call.go:149] FlexVolume: driver call failed: executable: /usr/libexec/kubernetes/kubelet-plugins/volume/exec/nodeagent~uds/uds, args: [init], error: fork/exec /usr/libexec/kubernetes/kubelet-plugins/volume/exec/nodeagent~uds/uds: no such file or directory, output: &quot;&quot;
+  Dec 07 02:55:15 node01 kubelet[87577]: E1207 02:55:15.365029   87577 plugins.go:729] Error dynamically probing plugins: Error creating Flexvolume plugin from directory nodeagent~uds, skipping. Error: unexpected end of JSON input
+  Dec 07 02:55:15 node01 kubelet[87577]: E1207 02:55:15.367164   87577 driver-call.go:266] Failed to unmarshal output for command: init, output: &quot;&quot;, error: unexpected end of JSON input
+  Dec 07 02:55:15 node01 kubelet[87577]: W1207 02:55:15.367222   87577 driver-call.go:149] FlexVolume: driver call failed: executable: /usr/libexec/kubernetes/kubelet-plugins/volume/exec/nodeagent~uds/uds, args: [init], error: fork/exec /usr/libexec/kubernetes/kubelet-plugins/volume/exec/nodeagent~uds/uds: no such file or directory, output: &quot;&quot;
+  Dec 07 02:55:15 node01 kubelet[87577]: E1207 02:55:15.367363   87577 plugins.go:729] Error dynamically probing plugins: Error creating Flexvolume plugin from directory nodeagent~uds, skipping. Error: unexpected end of JSON input
+</code></pre><h3 id="pod-部署的组件">pod 部署的组件</h3>
+<ul>
+<li>
+<p>查看方式 kubectl logs 组件部署pod名称 -n kube-system</p>
+<pre><code>[root@node01 ~]#  kubectl get pod -n kube-system
+NAME                                       READY   STATUS    RESTARTS   AGE
+calico-kube-controllers-7dbc97f587-f4ngh   1/1     Running   0          13h
+calico-node-lcjvs                          1/1     Running   0          13h
+calico-node-nt8sw                          1/1     Running   0          13h
+calico-node-vlpq7                          1/1     Running   0          13h
+coredns-7ff77c879f-flmt9                   1/1     Running   0          13h
+coredns-7ff77c879f-xvmxq                   1/1     Running   0          13h
+etcd-node01                                1/1     Running   0          13h
+kube-apiserver-node01                      1/1     Running   0          13h
+kube-controller-manager-node01             1/1     Running   0          13h
+kube-proxy-f9574                           1/1     Running   0          13h
+kube-proxy-kxlrh                           1/1     Running   0          13h
+kube-proxy-sdgq2                           1/1     Running   0          13h
+kube-scheduler-node01                      1/1     Running   0          13h
+metrics-server-686c5b74f5-8fdbk            1/1     Running   0          129m
+
+[root@node01 ~]#  kubectl logs -f kube-proxy-f9574 -n  kube-system
+W1206 18:49:50.726959       1 server_others.go:559] Unknown proxy mode &quot;&quot;, assuming iptables proxy
+I1206 18:49:50.744348       1 node.go:136] Successfully retrieved node IP: 192.168.241.121
+I1206 18:49:50.744471       1 server_others.go:186] Using iptables Proxier.
+I1206 18:49:50.745201       1 server.go:583] Version: v1.18.0
+I1206 18:49:50.746310       1 conntrack.go:52] Setting nf_conntrack_max to 131072
+I1206 18:49:50.752179       1 config.go:315] Starting service config controller
+I1206 18:49:50.755009       1 shared_informer.go:223] Waiting for caches to sync for service config
+I1206 18:49:50.755153       1 config.go:133] Starting endpoints config controller
+I1206 18:49:50.755185       1 shared_informer.go:223] Waiting for caches to sync for endpoints config
+I1206 18:49:50.857164       1 shared_informer.go:230] Caches are synced for endpoints config 
+I1206 18:49:50.857262       1 shared_informer.go:230] Caches are synced for service config 
+</code></pre></li>
+<li>
+<p>宿主机日志文件 /var/lib/docker/containers/&lt;container-id&gt;/&lt;container-id&gt;-json.log</p>
+<ul>
+<li>确认组件部署节点</li>
+</ul>
+<pre><code>[root@node01 ~]# kubectl get pods -n kube-system -o wide 
+NAME                                       READY   STATUS    RESTARTS   AGE    IP                NODE     NOMINATED NODE   READINESS GATES
+calico-kube-controllers-7dbc97f587-f4ngh   1/1     Running   0          13h    10.244.140.66     node02   &lt;none&gt;           &lt;none&gt;
+calico-node-lcjvs                          1/1     Running   0          13h    192.168.241.122   node02   &lt;none&gt;           &lt;none&gt;
+calico-node-nt8sw                          1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+calico-node-vlpq7                          1/1     Running   0          13h    192.168.241.123   node03   &lt;none&gt;           &lt;none&gt;
+coredns-7ff77c879f-flmt9                   1/1     Running   0          13h    10.244.140.65     node02   &lt;none&gt;           &lt;none&gt;
+coredns-7ff77c879f-xvmxq                   1/1     Running   0          13h    10.244.186.193    node03   &lt;none&gt;           &lt;none&gt;
+etcd-node01                                1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+kube-apiserver-node01                      1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+kube-controller-manager-node01             1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+kube-proxy-f9574                           1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+kube-proxy-kxlrh                           1/1     Running   0          13h    192.168.241.123   node03   &lt;none&gt;           &lt;none&gt;
+kube-proxy-sdgq2                           1/1     Running   0          13h    192.168.241.122   node02   &lt;none&gt;           &lt;none&gt;
+kube-scheduler-node01                      1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+metrics-server-686c5b74f5-8fdbk            1/1     Running   0          131m   10.244.140.69     node02   &lt;none&gt;           &lt;none&gt;
+[root@node01 ~]# 
+</code></pre><ul>
+<li>例如找到 node03 节点上的 kube-proxy-kxlrh</li>
+<li>登录node03 ，确认宿主机日志文件 -json.log
+<pre><code>  [root@node03 ~]# kubectl get ep
+  error: no configuration has been provided, try setting KUBERNETES_MASTER environment variable
+  [root@node03 ~]# docker ps | grep kube-prox 
+  aa88b596e7c3        43940c34f24f                                        &quot;/usr/local/bin/kube…&quot;   14 hours ago        Up 14 hours                             k8s_kube-proxy_kube-proxy-kxlrh_kube-system_b955f5bb-5b95-4e35-b88d-4bf7d2a876eb_0
+  277f3a63173e        registry.aliyuncs.com/google_containers/pause:3.2   &quot;/pause&quot;                 14 hours ago        Up 14 hours                             k8s_POD_kube-proxy-kxlrh_kube-system_b955f5bb-5b95-4e35-b88d-4bf7d2a876eb_0
+  [root@node03 ~]# 
+  [root@node03 ~]# ls -ltr /var/lib/docker/containers/aa88b596e7c32029708f558bd539cecfca38c9e4b532315a4297e08103f06f1a/
+  total 16
+  drwx------ 2 root root    6 Dec  7 02:50 checkpoints
+  drwx------ 2 root root    6 Dec  7 02:50 mounts
+  -rw-r--r-- 1 root root 1990 Dec  7 02:50 hostconfig.json
+  -rw------- 1 root root 6525 Dec  7 02:50 config.v2.json
+  -rw-r----- 1 root root 1729 Dec  7 02:50 aa88b596e7c32029708f558bd539cecfca38c9e4b532315a4297e08103f06f1a-json.log
+  [root@node03 ~]# 
+</code></pre></li>
+<li>确认kubectl logs和宿主机上的日志是否一致
+<pre><code>  [root@node03 ~]# tail -10f /var/lib/docker/containers/aa88b596e7c32029708f558bd539cecfca38c9e4b532315a4297e08103f06f1a/aa88b596e7c32029708f558bd539cecfca38c9e4b532315a4297e08103f06f1a-json.log
+  {&quot;log&quot;:&quot;I1206 18:50:57.020671       1 node.go:136] Successfully retrieved node IP: 192.168.241.123\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.02140417Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.020750       1 server_others.go:186] Using iptables Proxier.\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.021451728Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.021768       1 server.go:583] Version: v1.18.0\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.025650319Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.022887       1 conntrack.go:52] Setting nf_conntrack_max to 131072\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.025694844Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.029877       1 config.go:315] Starting service config controller\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.034341843Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.029984       1 shared_informer.go:223] Waiting for caches to sync for service config\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.034388535Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.030075       1 config.go:133] Starting endpoints config controller\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.034413777Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.030106       1 shared_informer.go:223] Waiting for caches to sync for endpoints config\n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.034439668Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.132485       1 shared_informer.go:230] Caches are synced for service config \n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.133595341Z&quot;}
+  {&quot;log&quot;:&quot;I1206 18:50:57.132584       1 shared_informer.go:230] Caches are synced for endpoints config \n&quot;,&quot;stream&quot;:&quot;stderr&quot;,&quot;time&quot;:&quot;2020-12-06T18:50:57.1336754Z&quot;}
+</code></pre></li>
+</ul>
+</li>
+</ul>
+<h3 id="系统日志">系统日志</h3>
+<ul>
+<li>/var/log/message</li>
+</ul>
+<h3 id="宿主机日志文件">宿主机日志文件</h3>
+<ul>
+<li>
+<p>/var/lib/docker/containers/&lt;container-id&gt;/&lt;container-id&gt;-json.log</p>
+<pre><code> [root@node01 ~]# kubectl get pods -n kube-system -o wide 
+ NAME                                       READY   STATUS    RESTARTS   AGE    IP                NODE     NOMINATED NODE   READINESS GATES
+ calico-kube-controllers-7dbc97f587-f4ngh   1/1     Running   0          13h    10.244.140.66     node02   &lt;none&gt;           &lt;none&gt;
+ calico-node-lcjvs                          1/1     Running   0          13h    192.168.241.122   node02   &lt;none&gt;           &lt;none&gt;
+ calico-node-nt8sw                          1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+ calico-node-vlpq7                          1/1     Running   0          13h    192.168.241.123   node03   &lt;none&gt;           &lt;none&gt;
+ coredns-7ff77c879f-flmt9                   1/1     Running   0          13h    10.244.140.65     node02   &lt;none&gt;           &lt;none&gt;
+ coredns-7ff77c879f-xvmxq                   1/1     Running   0          13h    10.244.186.193    node03   &lt;none&gt;           &lt;none&gt;
+ etcd-node01                                1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+ kube-apiserver-node01                      1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+ kube-controller-manager-node01             1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+ kube-proxy-f9574                           1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+ kube-proxy-kxlrh                           1/1     Running   0          13h    192.168.241.123   node03   &lt;none&gt;           &lt;none&gt;
+ kube-proxy-sdgq2                           1/1     Running   0          13h    192.168.241.122   node02   &lt;none&gt;           &lt;none&gt;
+ kube-scheduler-node01                      1/1     Running   0          13h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+ metrics-server-686c5b74f5-8fdbk            1/1     Running   0          145m   10.244.140.69     node02   &lt;none&gt;           &lt;none&gt;
+ [root@node01 ~]# 
+
+</code></pre></li>
+</ul>
+<h2 id="管理k8s应用日志">管理k8s应用日志</h2>
+<h3 id="标准输出">标准输出</h3>
+<ul>
+<li>标准输出，都会被docker接管，持久化到宿主机的目录下，可以统一做采集</li>
+<li>kubectl logs &ndash;&gt; apiserver &ndash;&gt; kubelet &ndash;&gt; container</li>
+<li>kubectl 查看标准输出日志：
+<ul>
+<li>1 kubectl logs &lt;pod名称&gt;</li>
+<li>2  kubectl logs -f &lt;pod名称&gt;</li>
+<li>3 kubctl logs -f &lt;pod名称&gt; -c &lt;容器名称&gt;</li>
+</ul>
+</li>
+<li>宿主机通配日志目录： /var/lib/docker/containers/&lt;container-id&gt;/&lt;container-id&gt;-json.log
+<ul>
+<li>
+<p>案例 :pod nginx-f89759699-gjl52，比较宿主机目录下的日志和 kubectl logs -f pod 输出的日志是否一样</p>
+</li>
+<li>
+<p>kubectl logs -f nginx-f89759699-gjl52 日志</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">  <span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl logs -f nginx-f89759699-974qr</span>
+  /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+  /docker-entrypoint.sh: Looking <span style="color:#000;font-weight:bold">for</span> shell scripts in /docker-entrypoint.d/
+  /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+  10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+  10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
+  /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+  /docker-entrypoint.sh: Configuration complete; ready <span style="color:#000;font-weight:bold">for</span> start up
+  192.168.241.122 - - <span style="color:#000;font-weight:bold">[</span>07/Dec/2020:08:54:16 +0000<span style="color:#000;font-weight:bold">]</span> <span style="color:#d14">&#34;GET / HTTP/1.1&#34;</span> <span style="color:#099">200</span> <span style="color:#099">612</span> <span style="color:#d14">&#34;-&#34;</span> <span style="color:#d14">&#34;curl/7.29.0&#34;</span> <span style="color:#d14">&#34;-&#34;</span>
+
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>宿主机目录下的日志</p>
+<ul>
+<li>
+<p>确认nginx-f89759699-974qr具体的节点 node02</p>
+<pre><code>[root@node01 ~]# kubectl get pods -o wide | grep  nginx-f89759699-974qr
+nginx-f89759699-974qr         1/1     Running   0          5h8m    10.244.140.68    node02   &lt;none&gt;           &lt;none&gt;
+[root@node01 ~]# 
+
+</code></pre></li>
+<li>
+<p>登录 node02，确认容器id为2ad48a5a270b</p>
+<pre><code>[root@node02 ~]# ls /var/lib/docker/containers/2ad48a5a270b072ed53fd761349bc22c24565e6e856baafb85216d64bb499e19/2ad48a5a270b072ed53fd761349bc22c24565e6e856baafb85216d64bb499e19-json.log 
+/var/lib/docker/containers/2ad48a5a270b072ed53fd761349bc22c24565e6e856baafb85216d64bb499e19/2ad48a5a270b072ed53fd761349bc22c24565e6e856baafb85216d64bb499e19-json.log
+[root@node02 ~]# tail -f /var/lib/docker/containers/2ad48a5a270b072ed53fd761349bc22c24565e6e856baafb85216d64bb499e19/2ad48a5a270b072ed53fd761349bc22c24565e6e856baafb85216d64bb499e19-json.log
+{&quot;log&quot;:&quot;/docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T03:48:19.376725279Z&quot;}
+{&quot;log&quot;:&quot;/docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T03:48:19.376788979Z&quot;}
+{&quot;log&quot;:&quot;/docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T03:48:19.388212152Z&quot;}
+{&quot;log&quot;:&quot;10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T03:48:19.428578275Z&quot;}
+{&quot;log&quot;:&quot;10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T03:48:19.45054354Z&quot;}
+{&quot;log&quot;:&quot;/docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T03:48:19.450828133Z&quot;}
+{&quot;log&quot;:&quot;/docker-entrypoint.sh: Configuration complete; ready for start up\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T03:48:19.463958Z&quot;}
+{&quot;log&quot;:&quot;192.168.241.122 - - [07/Dec/2020:08:54:16 +0000] \&quot;GET / HTTP/1.1\&quot; 200 612 \&quot;-\&quot; \&quot;curl/7.29.0\&quot; \&quot;-\&quot;\n&quot;,&quot;stream&quot;:&quot;stdout&quot;,&quot;time&quot;:&quot;2020-12-07T08:54:16.408898143Z&quot;}
+^C
+
+</code></pre></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="非标准输出如果程序中的日志落地到具体的文件处理方法有两种">非标准输出，如果程序中的日志落地到具体的文件，处理方法有两种</h3>
+<ul>
+<li>
+<p>1 给程序添加数据卷，将日志持久化到宿主机上</p>
+<ul>
+<li>
+<p>宿主机目录: /var/lib/kubelet/pods/<!-- raw HTML omitted -->/volumes/kubernetes.io~empty-dir/logs/</p>
+</li>
+<li>
+<p>案例</p>
+<ul>
+<li>
+<p>生成 test pod ，确认pod对应的节点 node03</p>
+<pre><code>[root@node01 ~]# cat mypod-nginx.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web2
+spec:
+  containers:
+  - name: web
+    image: nginx
+    volumeMounts:
+    - name: logs
+      mountPath: /var/log/nginx
+  volumes:
+  - name: logs
+    emptyDir: {}
+
+[root@node01 ~]# kubectl apply -f mypod-nginx.yaml
+pod/web2 created
+[root@node01 ~]# kubectl get pod
+NAME                          READY   STATUS    RESTARTS   AGE
+aliang-666-74689c47f4-9xn25   1/1     Running   0          3h35m
+nginx-f89759699-974qr         1/1     Running   0          5h24m
+nginx-php                     1/1     Running   0          11m
+web2                          1/1     Running   0          12s
+[root@node01 ~]# kubectl get pod -o wide 
+NAME                          READY   STATUS    RESTARTS   AGE     IP               NODE     NOMINATED NODE   READINESS GATES
+aliang-666-74689c47f4-9xn25   1/1     Running   0          3h35m   10.244.186.199   node03   &lt;none&gt;           &lt;none&gt;
+nginx-f89759699-974qr         1/1     Running   0          5h24m   10.244.140.68    node02   &lt;none&gt;           &lt;none&gt;
+nginx-php                     1/1     Running   0          11m     10.244.186.200   node03   &lt;none&gt;           &lt;none&gt;
+web2                          1/1     Running   0          23s     10.244.186.201   node03   &lt;none&gt;           &lt;none&gt;
+
+</code></pre></li>
+<li>
+<p>登录 node03 确认pod-id为 089c6e0a-8c79-4fc1-b991-d6837db68036</p>
+</li>
+</ul>
+<pre><code>[root@node03 ~]# docker ps |grep web2 | grep -v POD
+a43a1e2aabc5        nginx                                               &quot;/docker-entrypoint.…&quot;   2 minutes ago       Up 2 minutes                            k8s_web_web2_default_089c6e0a-8c79-4fc1-b991-d6837db68036_0
+
+</code></pre><ul>
+<li>确认宿主机路径及日志是否正确
+<pre><code>[root@node03 ~]# ls -ltr /var/lib/kubelet/pods/089c6e0a-8c79-4fc1-b991-d6837db68036/volumes/kubernetes.io~empty-dir/logs/
+total 4
+-rw-r--r-- 1 root root  0 Dec  7 17:10 error.log
+-rw-r--r-- 1 root root 95 Dec  7 17:15 access.log
+[root@node01 ~]# curl  10.244.186.201  #请求web2 查看日志情况
+    &lt;!DOCTYPE html&gt;
+    &lt;html&gt;
+    &lt;head&gt;
+    &lt;title&gt;Welcome to nginx!&lt;/title&gt;
+    &lt;style&gt;
+        body {
+            width: 35em;
+            margin: 0 auto;
+            font-family: Tahoma, Verdana, Arial, sans-serif;
+        }
+    &lt;/style&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+    &lt;h1&gt;Welcome to nginx!&lt;/h1&gt;
+    &lt;p&gt;If you see this page, the nginx web server is successfully installed and
+    working. Further configuration is required.&lt;/p&gt;
+            
+    &lt;p&gt;For online documentation and support please refer to
+    &lt;a href=&quot;http://nginx.org/&quot;&gt;nginx.org&lt;/a&gt;.&lt;br/&gt;
+    Commercial support is available at
+    &lt;a href=&quot;http://nginx.com/&quot;&gt;nginx.com&lt;/a&gt;.&lt;/p&gt;
+            
+    &lt;p&gt;&lt;em&gt;Thank you for using nginx.&lt;/em&gt;&lt;/p&gt;
+    &lt;/body&gt;
+    &lt;/html&gt;
+    
+    ```
+        
+  
+</code></pre></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>2 在pod添加一个日志采集器，在pod中完成日志采集的步骤</p>
+<ul>
+<li>pod 创建一个边车容器读取业务容器日志
+<ul>
+<li>
+<p>mypod-test.yaml</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>Pod<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>mypod-test<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">spec</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">containers</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>web<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">image</span>:<span style="color:#bbb"> </span>nginx<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">volumeMounts</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>logs<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">mountPath</span>:<span style="color:#bbb"> </span>/var/log/nginx<span style="color:#bbb">
+</span><span style="color:#bbb">  </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>log-tool<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">image</span>:<span style="color:#bbb"> </span>busybox<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">args</span>:<span style="color:#bbb"> </span>[/bin/sh, -c, &#39;tail -f /opt/access.log&#39;]<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">volumeMounts</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>logs<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">mountPath</span>:<span style="color:#bbb"> </span>/opt<span style="color:#bbb">
+</span><span style="color:#bbb">        
+</span><span style="color:#bbb">  </span><span style="color:#000080">volumes</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>logs<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">emptyDir</span>:<span style="color:#bbb"> </span>{}<span style="color:#bbb">
+</span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>web 容器日志</p>
+<pre><code>[root@node01 ~]# kubectl exec -it  mypod-test -c web -- bash
+
+root@mypod-test:/# ls -l /var/log/nginx/
+total 0
+-rw-r--r-- 1 root root 0 Dec  7 09:22 access.log
+-rw-r--r-- 1 root root 0 Dec  7 09:22 error.log
+root@mypod-test:/# 
+root@mypod-test:/# tail -f /var/log/nginx/access.log 
+10.244.196.128 - - [07/Dec/2020:09:25:35 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:11 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:13 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:15 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+
+</code></pre></li>
+<li>
+<p>log-tool</p>
+<pre><code>[root@node01 ~]#  kubectl logs -f mypod-test -c log-tool
+10.244.196.128 - - [07/Dec/2020:09:25:35 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:11 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:13 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:15 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+[root@node01 ~]# kubectl exec -it  mypod-test -c log-tool -- sh
+/ # cd /opt/
+/opt # ls -l
+total 4
+-rw-r--r--    1 root     root           380 Dec  7 09:26 access.log
+-rw-r--r--    1 root     root             0 Dec  7 09:22 error.log
+/opt # tail -f access.log 
+10.244.196.128 - - [07/Dec/2020:09:25:35 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:11 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:13 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+10.244.196.128 - - [07/Dec/2020:09:26:15 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+</code></pre></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="https://hardy1970.github.io">IT干饭人</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="https://hardy1970.github.io/post/02-kubernates-monitor-logs/">https://hardy1970.github.io/post/02-kubernates-monitor-logs/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/01-kubernates-install/">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a></li>
+        
+        <li><a href="/post/00-kubernates-command/">00 Kubernetes概念及常用命令</a></li>
+        
+        <li><a href="/about/">关于我</a></li>
+        
+        <li><a href="/archives/">归档</a></li>
+        
+        <li><a href="/search/">搜索</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            <ul class="clearfix">
+                
+                <li><a href='/tags/Kubernetes'>Kubernetes</a></li>
+                
+                <li><a href='/tags/logs'>logs</a></li>
+                
+                <li><a href='/tags/monitor'>monitor</a></li>
+                
+            </ul>
+            
+        </div>
+    </article>
+    
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "yourdiscussshortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="https://hardy1970.github.io">dreamLinux博客 By IT干饭人</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="http://hardy1970.github.io/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">IT干饭人</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='https://hardy1970.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="https://hardy1970.github.io">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/" title="10 在k8s平台部署一个网站">10 在k8s平台部署一个网站</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络">05 Kubernetes 网络</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度">04 Kubernetes 资源调度</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理">03 Kubernetes 应用程序生命周期管理</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/02-kubernates-monitor-logs/" title="02 Kubernetes 监控与日志">02 Kubernetes 监控与日志</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/01-kubernates-install/" title="01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/00-kubernates-command/" title="00 Kubernetes概念及常用命令">00 Kubernetes概念及常用命令</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title" style="color:red">福利派送</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a href="https://www.aliyun.com/minisite/goods?userCode=jdg9oj97&amp;share_source=copy_link" title="【2019双12】ALL IN CLoud 低至1折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1_rYHo7P2gK0jSZPxXXacQpXa-690-388.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://cloud.tencent.com/act/cps/redirect?redirect=1048&amp;cps_key=14ff722692ac784fa8c3301c8c28d924&amp;from=console" title="助力产业智慧升级，云服务器首年88元起，更有千元代金券礼包免费领！" target="_blank" style="color:red">
+                
+                    <img src="https://upload-dianshi-1255598498.file.myqcloud.com/345-7c71532bd4935fbdd9a67c1a71e577b1767b805c.200%E7%89%88%E6%9C%ACB.jpg">
+                
+            </a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (7)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+    <a href="https://hardy1970.github.io/tags/Calico/">Calico</a>
+    
+    <a href="https://hardy1970.github.io/tags/Deployment/">Deployment</a>
+    
+    <a href="https://hardy1970.github.io/tags/Flannel/">Flannel</a>
+    
+    <a href="https://hardy1970.github.io/tags/Ingress/">Ingress</a>
+    
+    <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/Service/">Service</a>
+    
+    <a href="https://hardy1970.github.io/tags/bash-completion/">bash-completion</a>
+    
+    <a href="https://hardy1970.github.io/tags/cni/">cni</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubeadm/">kubeadm</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubectl/">kubectl</a>
+    
+    <a href="https://hardy1970.github.io/tags/logs/">logs</a>
+    
+    <a href="https://hardy1970.github.io/tags/monitor/">monitor</a>
+    
+    <a href="https://hardy1970.github.io/tags/network/">network</a>
+    
+    <a href="https://hardy1970.github.io/tags/pod/">pod</a>
+    
+    <a href="https://hardy1970.github.io/tags/scale/">scale</a>
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://hardy1970.github.io/" title="dreamLinux博客">dreamLinux博客</a>
+        </li>
+        
+        <li>
+            <a target="_blank" href="http://yuedu.baidu.com/ebook/14a722970740be1e640e9a3e" title="Android Gradle权威指南">Android Gradle权威指南</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="https://hardy1970.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

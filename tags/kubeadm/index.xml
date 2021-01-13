@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>kubeadm on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/kubeadm/</link>
+    <description>Recent content in kubeadm on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Fri, 08 Jan 2021 22:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/kubeadm/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</title>
+      <link>https://hardy1970.github.io/post/01-kubernates-install/</link>
+      <pubDate>Fri, 08 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/01-kubernates-install/</guid>
+      <description>生产环境部署k8s的2种方式 实验环境 k8s master/node cpu 2c k8s master/node 内存 2G+ &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; 测试环境 k8s-master cpu 2核 k8s-master 内存 4G k8s-master 硬盘 20G 测试环境 k8s-node cpu 4核 k8s-node 内存 8G k8s-node 硬盘 20G &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; &amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash; 生产环境 k8s-master cpu 8核 k8s-master 内存 16G k8s-master 硬盘 100G 生产环境 k8s-node cpu 16核 k8s-node 内存 64G k8s-node 硬盘 500G 0.kubeadm介绍 kubeadm是一个工具，提供kubeadm init和ku</description>
+    </item>
+    
+  </channel>
+</rss>

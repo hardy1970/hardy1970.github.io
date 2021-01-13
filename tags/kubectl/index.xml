@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>kubectl on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/kubectl/</link>
+    <description>Recent content in kubectl on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Fri, 08 Jan 2021 21:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/kubectl/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>00 Kubernetes概念及常用命令</title>
+      <link>https://hardy1970.github.io/post/00-kubernates-command/</link>
+      <pubDate>Fri, 08 Jan 2021 21:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/00-kubernates-command/</guid>
+      <description>有了docker，为什么还用kubernates? 企业需求：为提高业务并发和高可用，会使用多台服务器 多容器跨主机提供服务 多容器分布节点部署 多容器怎么升级 高效管理这些容器 容器编排程序 kubernates # 谷歌开发 swarm # docker官方开发，官方目前不提供支持了 Mesos Marathon # 依靠marathon框架 kubern</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>pod on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/pod/</link>
+    <description>Recent content in pod on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Sat, 09 Jan 2021 13:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/pod/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>04 Kubernetes 资源调度</title>
+      <link>https://hardy1970.github.io/post/04-kubernates-schedule/</link>
+      <pubDate>Sat, 09 Jan 2021 13:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/04-kubernates-schedule/</guid>
+      <description>创建一个pod的工作流程 kubernetes基于list-watch机制的控制器架构，实现组件间交互的解耦 [root@node01 ~]# kubectl run nginx --image=nginx 1 kubectl 将创建pod的请求提交到apiserver 2 会将请求的信息写到etcd 3 api-server通知scheduler有创建新的pod, 收到创建之后就会根据调度算</description>
+    </item>
+    
+  </channel>
+</rss>

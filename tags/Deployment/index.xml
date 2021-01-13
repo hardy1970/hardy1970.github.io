@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Deployment on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/Deployment/</link>
+    <description>Recent content in Deployment on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Sat, 09 Jan 2021 11:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/Deployment/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>03 Kubernetes 应用程序生命周期管理</title>
+      <link>https://hardy1970.github.io/post/03-kubernetes-life-cycle/</link>
+      <pubDate>Sat, 09 Jan 2021 11:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/03-kubernetes-life-cycle/</guid>
+      <description>在kubernetes中部署应用流程 制作镜像（Dockerfile）&amp;mdash;- 使用控制器部署镜像（Deployment、StatefulSet、DaemonSet）&amp;mdash;- 对外暴露应用（Service、Ingress）&amp;mdash;- 日志、监控&amp;mdash;- 日常运</description>
+    </item>
+    
+  </channel>
+</rss>

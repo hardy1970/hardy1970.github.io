@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>05 Kubernetes 网络 | dreamLinux博客</title>
+    <meta property="og:title" content="05 Kubernetes 网络 - dreamLinux博客">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2021-01-09T13:30:00&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2021-01-09T13:30:00&#43;08:00'>
+        
+    <meta name="Keywords" content="linux,go语言,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="description" content="05 Kubernetes 网络">
+        
+    <meta name="author" content="IT干饭人">
+    <meta property="og:url" content="https://hardy1970.github.io/post/05-kubernetes-network/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="https://hardy1970.github.io">
+                        dreamLinux博客
+                    </a>
+                
+                <p class="description">专注于Linux、Python、Go、Docker、ELKStack 等开源技术交流分享</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="https://hardy1970.github.io">首页</a>
+                    
+                    <a  href="https://hardy1970.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="https://hardy1970.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="https://hardy1970.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#service存在的意义">Service存在的意义</a>
+      <ul>
+        <li><a href="#service三种类型">Service三种类型</a></li>
+        <li><a href="#service代理模式">Service代理模式</a></li>
+      </ul>
+    </li>
+    <li><a href="#ingress">Ingress</a>
+      <ul>
+        <li><a href="#ingress为弥补nodeport不足而生">Ingress为弥补NodePort不足而生</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">05 Kubernetes 网络</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月9日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Kubernetes'>Kubernetes</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="clear" style="display: none">
+            <div class="toc-article">
+                <div class="toc-title">文章目录</div>
+            </div>
+        </div>
+        
+        <div class="post-content">
+            <h2 id="service存在的意义">Service存在的意义</h2>
+<ul>
+<li>防止Pod失联（服务发现）</li>
+<li>定义一组Pod的访问策略（负载均衡）</li>
+<li>Pod与Service的关系
+<ul>
+<li>通过label-selector相关联</li>
+<li>通过service实现pod的负载均衡（TCP/UDP  4层）</li>
+</ul>
+</li>
+</ul>
+<h3 id="service三种类型">Service三种类型</h3>
+<ul>
+<li>ClusterIP(默认类型): 集群内部使用</li>
+<li>NodePort: 在每个节点上启用一个端口来暴露服务，可以在集群外部访问。也会分配一个稳定内部集群IP地址,端口范围：30000-32767。访问地址：<!-- raw HTML omitted -->:<!-- raw HTML omitted --></li>
+<li>LoadBalancer: 对外暴露应用，适用于公有云，与NodePort类似，在每个节点上启用一个端口来暴露服务。除此之外，Kubernetes会请求底层云平台上的负载均衡器，将每个Node([NodeIP]:[NodePort])作为后端添加进去</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#998;font-style:italic"># cat service.yaml </span><span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>Service<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">labels</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">app</span>:<span style="color:#bbb"> </span>nginx<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>web666<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">spec</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">ports</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span>- <span style="color:#000080">port</span>:<span style="color:#bbb"> </span><span style="color:#099">80</span><span style="color:#bbb">  </span><span style="color:#998;font-style:italic">#service(LB)端口</span><span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">protocol</span>:<span style="color:#bbb"> </span>TCP<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">targetPort</span>:<span style="color:#bbb"> </span><span style="color:#099">80</span><span style="color:#bbb"> </span><span style="color:#998;font-style:italic">#后端服务端口</span><span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#998;font-style:italic"># nodePort: 31000 #对外暴露的节点端口，不指定则随机端口，30000--32767之内</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">selector</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">app</span>:<span style="color:#bbb"> </span>nginx <span style="color:#bbb"> </span><span style="color:#998;font-style:italic">#通过标签选择器去关联pod</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">type</span>:<span style="color:#bbb"> </span>NodePort<span style="color:#bbb"> </span><span style="color:#998;font-style:italic">#默认ClusterIP</span><span style="color:#bbb">
+</span></code></pre></td></tr></table>
+</div>
+</div><h3 id="service代理模式">Service代理模式</h3>
+<ul>
+<li>
+<p>流程包流程：客户端 -&gt; NodePort/ClusterIP (iptables/Ipvs负载均衡规则) -&gt; 分布在各节点Pod</p>
+</li>
+<li>
+<p>k8s kubelet-proxy没有配置代理模式的话， 默认使用iptables</p>
+</li>
+<li>
+<p>两种模式</p>
+<ul>
+<li>iptables
+<ul>
+<li>查看负载均衡规则 iptables-save|grep <!-- raw HTML omitted -->
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># iptables-save| grep web666| grep 30400</span>
+<span style="color:#998;font-style:italic"># 忽略MARK规则</span>
+-A KUBE-NODEPORTS -p tcp -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -m tcp --dport <span style="color:#099">30400</span> -j KUBE-MARK-MASQ
+<span style="color:#998;font-style:italic"># NodePort 规则</span>
+-A KUBE-NODEPORTS -p tcp -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -m tcp --dport <span style="color:#099">30400</span> -j KUBE-SVC-XRSROVJGGJNRRAT6
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># iptables-save| grep web666 | grep KUBE-SVC-XRSROVJGGJNRRAT6</span>
+<span style="color:#998;font-style:italic"># NodePort 规则</span>
+-A KUBE-NODEPORTS -p tcp -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -m tcp --dport <span style="color:#099">30400</span> -j KUBE-SVC-XRSROVJGGJNRRAT6
+<span style="color:#998;font-style:italic"># clusterIp 规则</span>
+-A KUBE-SERVICES -d 10.10.187.36/32 -p tcp -m comment --comment <span style="color:#d14">&#34;default/web666: cluster IP&#34;</span> -m tcp --dport <span style="color:#099">80</span> -j KUBE-SVC-XRSROVJGGJNRRAT6
+<span style="color:#998;font-style:italic"># pod 转发规则</span>
+-A KUBE-SVC-XRSROVJGGJNRRAT6 -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -m statistic --mode random --probability 0.33333333349 -j KUBE-SEP-RXF35Y6FKLBYCNPG
+-A KUBE-SVC-XRSROVJGGJNRRAT6 -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-JPVDP3H4YISGO2SZ
+-A KUBE-SVC-XRSROVJGGJNRRAT6 -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -j KUBE-SEP-QZOEC3P3GLXXCUUN
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># iptables-save| grep KUBE-SEP-JPVDP3H4YISGO2SZ</span>
+<span style="color:#998;font-style:italic"># 转发到具体的IP</span>
+:KUBE-SEP-JPVDP3H4YISGO2SZ - <span style="color:#000;font-weight:bold">[</span>0:0<span style="color:#000;font-weight:bold">]</span>
+-A KUBE-SEP-JPVDP3H4YISGO2SZ -s 10.244.140.94/32 -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -j KUBE-MARK-MASQ
+-A KUBE-SEP-JPVDP3H4YISGO2SZ -p tcp -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -m tcp -j DNAT --to-destination 10.244.140.94:80
+-A KUBE-SVC-XRSROVJGGJNRRAT6 -m comment --comment <span style="color:#d14">&#34;default/web666:&#34;</span> -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-JPVDP3H4YISGO2SZ
+<span style="color:#998;font-style:italic"># -j 是指转发到</span>
+<span style="color:#998;font-style:italic"># --probability 0.50000000000 匹配权重值</span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+</li>
+<li>ipvs 是内核的一个负载均衡程序，它会帮忙创建负载均衡规则
+<ul>
+<li>
+<p>修改方式</p>
+<ul>
+<li>
+<p>kubeadm方式修改ipvs模式</p>
+<ul>
+<li>注意事项
+<ul>
+<li>1 kube-proxy配置文件以configmap方式存储</li>
+<li>2 如果让所有节点生效，需要重建所有节点kube-proxy pod
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get configmap -n kube-system</span>
+NAME                                 DATA   AGE
+calico-config                        <span style="color:#099">4</span>      32h
+coredns                              <span style="color:#099">1</span>      32h
+extension-apiserver-authentication   <span style="color:#099">6</span>      32h
+kube-proxy                           <span style="color:#099">2</span>      32h
+kubeadm-config                       <span style="color:#099">2</span>      32h
+kubelet-config-1.18                  <span style="color:#099">1</span>      32h
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl edit cm kube-proxy -n kube-system</span>
+configmap/kube-proxy edited <span style="color:#998;font-style:italic"># 搜索mode: &#34;ipvs&#34;</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod -n  kube-system -o wide |grep kube-proxy</span>
+kube-proxy-f9574                           1/1     Running   <span style="color:#099">0</span>          33h    192.168.241.121   node01   &lt;none&gt;           &lt;none&gt;
+kube-proxy-kxlrh                           1/1     Running   <span style="color:#099">0</span>          33h    192.168.241.123   node03   &lt;none&gt;           &lt;none&gt;
+kube-proxy-sdgq2                           1/1     Running   <span style="color:#099">0</span>          33h    192.168.241.122   node02   &lt;none&gt;           &lt;none&gt;
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl delete pod kube-proxy-kxlrh -n  kube-system #删除对应节点的 kube-proxy，让其重建</span>
+pod <span style="color:#d14">&#34;kube-proxy-kxlrh&#34;</span> deleted
+
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>二进制方式修改ipvs模式：</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">vi kube-proxy-config.yml
+mode: ipvs
+ipvs:
+  scheduler: <span style="color:#d14">&#34;rr&#34;</span>
+<span style="color:#998;font-style:italic"># systemctl restart kube-proxy</span>
+<span style="color:#998;font-style:italic"># 参考不同资料，文件名可能不同        </span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+</li>
+<li>
+<p>查看负载均衡规则 ipvsadm -L -n</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">59
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">60
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">61
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">62
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">63
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">64
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">65
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">66
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">67
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">68
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">69
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">70
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">71
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">72
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">73
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">74
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">75
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">76
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">77
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">78
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">79
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">80
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">81
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">82
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">83
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">84
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">85
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">86
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">87
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">88
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">89
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">90
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">91
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">92
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">93
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">94
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">95
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">96
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node03 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># ipvsadm -L -n</span>
+IP Virtual Server version 1.2.1 <span style="color:#000;font-weight:bold">(</span><span style="color:#008080">size</span><span style="color:#000;font-weight:bold">=</span>4096<span style="color:#000;font-weight:bold">)</span>
+Prot LocalAddress:Port Scheduler Flags
+  -&gt; RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  192.168.241.123:30001 rr
+  -&gt; 10.244.186.195:8443          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  192.168.241.123:30400 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.0.1:443 rr
+  -&gt; 192.168.241.121:6443         Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.0.10:53 rr
+  -&gt; 10.244.140.65:53             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.193:53            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.160.149:8000 rr
+  -&gt; 10.244.140.67:8000           Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.187.36:80 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.219.107:80 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.222.241:443 rr
+  -&gt; 10.244.186.195:8443          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.245.52:80 rr
+TCP  10.244.2.0:30001 rr
+  -&gt; 10.244.186.195:8443          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.2.0:30400 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.2.0:32766 rr
+TCP  10.244.2.1:30001 rr
+  -&gt; 10.244.186.195:8443          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.2.1:30400 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.2.1:32389 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.186.192:30001 rr
+  -&gt; 10.244.186.195:8443          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.186.192:30400 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.186.192:32389 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.186.192:32766 rr
+TCP  127.0.0.1:30001 rr
+  -&gt; 10.244.186.195:8443          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  127.0.0.1:30400 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  127.0.0.1:32389 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  127.0.0.1:32766 rr
+TCP  172.17.0.1:30001 rr
+  -&gt; 10.244.186.195:8443          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  172.17.0.1:30400 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  172.17.0.1:32389 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  172.17.0.1:32766 rr
+TCP  192.168.241.123:32389 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  192.168.241.123:32766 rr
+TCP  10.10.0.10:9153 rr
+  -&gt; 10.244.140.65:9153           Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.193:9153          Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.10.62.36:443 rr
+  -&gt; 10.244.140.69:4443           Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.2.0:32389 rr
+  -&gt; 10.244.140.93:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.140.94:80             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.220:80            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+TCP  10.244.2.1:32766 rr
+UDP  10.10.0.10:53 rr
+  -&gt; 10.244.140.65:53             Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+  -&gt; 10.244.186.193:53            Masq    <span style="color:#099">1</span>      <span style="color:#099">0</span>          <span style="color:#099">0</span>         
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>iptables vs ipvs（推荐使用ipvs）</p>
+<ul>
+<li>iptables
+<ul>
+<li>灵活、功能强大</li>
+<li>规则遍历匹配和更新，呈线性时延</li>
+</ul>
+</li>
+<li>ipvs
+<ul>
+<li>工作在内核态，有更好的性能</li>
+<li>调度算法丰富：rr,wrr，lc,wlc,ip hash&hellip;.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="ingress">Ingress</h2>
+<h3 id="ingress为弥补nodeport不足而生">Ingress为弥补NodePort不足而生</h3>
+<ul>
+<li>
+<p>NodePort不足：</p>
+<ul>
+<li>一个端口只能一个服务使用，端口需提前规划</li>
+<li>只支持4层负载均衡</li>
+</ul>
+</li>
+<li>
+<p>Ingress是什么
+Ingress公开了从集群外部到集群内服务的HTTP和HTTPS路由。流量路由由Ingress资源上定义的规则控制。</p>
+<ul>
+<li>
+<p>Ingress Contronler怎么工作的
+Ingress Contronler通过与Kubernetes API交互，动态的去感知集群中Ingress规则变化，然后读取它，按照自定义的规则，规则就是写明了哪个域名对应哪个service，生成一段Nginx配置，应用到管理的Nginx服务，然后热加载生效。以此来达到Nginx负载均衡器配置及动态更新的问题</p>
+</li>
+<li>
+<p>流量发送到同一service的简单Ingress实例：
+客户端 -&gt; 负载均衡器（Ingress Controller） -&gt; Ingress(路由规则) -&gt; service -&gt; pod</p>
+</li>
+<li>
+<p>Pod与Ingress的关系<br>
+1、通过service相关联<br>
+2、通过ingress Controller实现pod的负载均衡(支持TCP/UDP 4层和HTTP7层 )</p>
+</li>
+<li>
+<p>Ingress使用流程：<br>
+1、部署Ingress Container<br>
+2、创建Ingress规则</p>
+</li>
+<li>
+<p>使用流程：</p>
+<ul>
+<li>部署Ingress Controller 组件
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.30.0/deploy/static/mandatory.yaml</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic">#  vim mandatory.yaml </span>
+<span style="color:#998;font-style:italic"># 1 镜像地址修改成国内的</span>
+<span style="color:#998;font-style:italic"># 2 新增建议直接宿主机网络暴露： hostNetwork: true #与containers平级 ,约215行</span>
+<span style="color:#998;font-style:italic"># 3 Deployment换成DaemonSet，约191行</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl apply -f mandatory.yaml </span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>创建Ingress规则
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat ingress.yaml # HTTP访问</span>
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: example-ingress
+spec:
+  rules:
+  - host: example.ctnrs.com
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: nginx <span style="color:#998;font-style:italic">#暴露对应的service</span>
+          servicePort: <span style="color:#099">80</span>    <span style="color:#998;font-style:italic">#service内部对应的端口</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic">#  kubectl apply -f ingress.yaml</span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>验证
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl http://192.168.241.123  -H &#34;host: example.ctnrs.com&#34;</span>
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;style&gt;
+    body <span style="color:#000;font-weight:bold">{</span>
+        width: 35em;
+        margin: <span style="color:#099">0</span> auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    <span style="color:#000;font-weight:bold">}</span>
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Welcome to nginx!&lt;/h1&gt;
+&lt;p&gt;If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.&lt;/p&gt;
+        
+&lt;p&gt;For online documentation and support please refer to
+&lt;a <span style="color:#008080">href</span><span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#34;http://nginx.org/&#34;</span>&gt;nginx.org&lt;/a&gt;.&lt;br/&gt;
+Commercial support is available at
+&lt;a <span style="color:#008080">href</span><span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#34;http://nginx.com/&#34;</span>&gt;nginx.com&lt;/a&gt;.&lt;/p&gt;
+        
+&lt;p&gt;&lt;em&gt;Thank you <span style="color:#000;font-weight:bold">for</span> using nginx.&lt;/em&gt;&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod -o wide -n ingress-nginx</span>
+NAME                                        READY   STATUS    RESTARTS   AGE   IP                NODE     NOMINATED NODE   READINESS GATES
+nginx-ingress-controller-4cqfg              1/1     Running   <span style="color:#099">0</span>          77s   192.168.241.122   node02   &lt;none&gt;           &lt;none&gt;
+nginx-ingress-controller-6mlqq              0/1     Pending   <span style="color:#099">0</span>          77s   &lt;none&gt;            &lt;none&gt;   &lt;none&gt;           &lt;none&gt;
+nginx-ingress-controller-77db54fc46-nsfb5   1/1     Running   <span style="color:#099">0</span>          18m   192.168.241.123   node03   &lt;none&gt;           &lt;none&gt;
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get svc </span>
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT<span style="color:#000;font-weight:bold">(</span>S<span style="color:#000;font-weight:bold">)</span>        AGE
+aliang-666   NodePort    10.10.245.52    &lt;none&gt;        80:32766/TCP   23h
+kubernetes   ClusterIP   10.10.0.1       &lt;none&gt;        443/TCP        34h
+nginx        NodePort    10.10.219.107   &lt;none&gt;        80:32389/TCP   34h
+web666       NodePort    10.10.187.36    &lt;none&gt;        80:30400/TCP   128m
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic">#  kubectl run dns -it --image=busybox:1.28.4 -- sh </span>
+If you don<span style="color:#a61717;background-color:#e3d2d2">&#39;</span>t see a <span style="color:#0086b3">command</span> prompt, try pressing enter.
+/ <span style="color:#998;font-style:italic"># nslookup web666</span>
+Server:    10.10.0.10
+Address 1: 10.10.0.10 kube-dns.kube-system.svc.cluster.local
+        
+Name:      web666
+Address 1: 10.10.187.36 web666.default.svc.cluster.local
+/ <span style="color:#998;font-style:italic"># nslookup kube-dns.kube-system # 跨命名空间访问</span>
+Server:    10.10.0.10
+Address 1: 10.10.0.10 kube-dns.kube-system.svc.cluster.local
+        
+Name:      kube-dns.kube-system
+Address 1: 10.10.0.10 kube-dns.kube-system.svc.cluster.local
+</code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>确保每个节点都运行一个ingress控制器，就需要污点+标签+deamonset</p>
+</blockquote>
+</li>
+<li>其它主流控制器
+<ul>
+<li>Traefik: HTTP反向代理、负载均衡工具</li>
+<li>Istio: 服务治理，控制入口流量</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="https://hardy1970.github.io">IT干饭人</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="https://hardy1970.github.io/post/05-kubernetes-network/">https://hardy1970.github.io/post/05-kubernetes-network/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/04-kubernates-schedule/">04 Kubernetes 资源调度</a></li>
+        
+        <li><a href="/post/03-kubernetes-life-cycle/">03 Kubernetes 应用程序生命周期管理</a></li>
+        
+        <li><a href="/post/02-kubernates-monitor-logs/">02 Kubernetes 监控与日志</a></li>
+        
+        <li><a href="/post/01-kubernates-install/">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a></li>
+        
+        <li><a href="/post/00-kubernates-command/">00 Kubernetes概念及常用命令</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            <ul class="clearfix">
+                
+                <li><a href='/tags/Kubernetes'>Kubernetes</a></li>
+                
+                <li><a href='/tags/Ingress'>Ingress</a></li>
+                
+                <li><a href='/tags/network'>network</a></li>
+                
+            </ul>
+            
+        </div>
+    </article>
+    
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "yourdiscussshortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="https://hardy1970.github.io">dreamLinux博客 By IT干饭人</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="http://hardy1970.github.io/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">IT干饭人</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='https://hardy1970.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="https://hardy1970.github.io">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/" title="10 在k8s平台部署一个网站">10 在k8s平台部署一个网站</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络">05 Kubernetes 网络</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度">04 Kubernetes 资源调度</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理">03 Kubernetes 应用程序生命周期管理</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/02-kubernates-monitor-logs/" title="02 Kubernetes 监控与日志">02 Kubernetes 监控与日志</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/01-kubernates-install/" title="01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/00-kubernates-command/" title="00 Kubernetes概念及常用命令">00 Kubernetes概念及常用命令</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title" style="color:red">福利派送</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a href="https://www.aliyun.com/minisite/goods?userCode=jdg9oj97&amp;share_source=copy_link" title="【2019双12】ALL IN CLoud 低至1折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1_rYHo7P2gK0jSZPxXXacQpXa-690-388.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://cloud.tencent.com/act/cps/redirect?redirect=1048&amp;cps_key=14ff722692ac784fa8c3301c8c28d924&amp;from=console" title="助力产业智慧升级，云服务器首年88元起，更有千元代金券礼包免费领！" target="_blank" style="color:red">
+                
+                    <img src="https://upload-dianshi-1255598498.file.myqcloud.com/345-7c71532bd4935fbdd9a67c1a71e577b1767b805c.200%E7%89%88%E6%9C%ACB.jpg">
+                
+            </a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (7)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+    <a href="https://hardy1970.github.io/tags/Calico/">Calico</a>
+    
+    <a href="https://hardy1970.github.io/tags/Deployment/">Deployment</a>
+    
+    <a href="https://hardy1970.github.io/tags/Flannel/">Flannel</a>
+    
+    <a href="https://hardy1970.github.io/tags/Ingress/">Ingress</a>
+    
+    <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/Service/">Service</a>
+    
+    <a href="https://hardy1970.github.io/tags/bash-completion/">bash-completion</a>
+    
+    <a href="https://hardy1970.github.io/tags/cni/">cni</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubeadm/">kubeadm</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubectl/">kubectl</a>
+    
+    <a href="https://hardy1970.github.io/tags/logs/">logs</a>
+    
+    <a href="https://hardy1970.github.io/tags/monitor/">monitor</a>
+    
+    <a href="https://hardy1970.github.io/tags/network/">network</a>
+    
+    <a href="https://hardy1970.github.io/tags/pod/">pod</a>
+    
+    <a href="https://hardy1970.github.io/tags/scale/">scale</a>
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://hardy1970.github.io/" title="dreamLinux博客">dreamLinux博客</a>
+        </li>
+        
+        <li>
+            <a target="_blank" href="http://yuedu.baidu.com/ebook/14a722970740be1e640e9a3e" title="Android Gradle权威指南">Android Gradle权威指南</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="https://hardy1970.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

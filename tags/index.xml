@@ -16,5 +16,131 @@
       <description></description>
     </item>
     
+    <item>
+      <title>Ingress</title>
+      <link>https://hardy1970.github.io/tags/Ingress/</link>
+      <pubDate>Sat, 09 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Ingress/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>network</title>
+      <link>https://hardy1970.github.io/tags/network/</link>
+      <pubDate>Sat, 09 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/network/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pod</title>
+      <link>https://hardy1970.github.io/tags/pod/</link>
+      <pubDate>Sat, 09 Jan 2021 13:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/pod/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Deployment</title>
+      <link>https://hardy1970.github.io/tags/Deployment/</link>
+      <pubDate>Sat, 09 Jan 2021 11:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Deployment/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>scale</title>
+      <link>https://hardy1970.github.io/tags/scale/</link>
+      <pubDate>Sat, 09 Jan 2021 11:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/scale/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Service</title>
+      <link>https://hardy1970.github.io/tags/Service/</link>
+      <pubDate>Sat, 09 Jan 2021 11:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Service/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>logs</title>
+      <link>https://hardy1970.github.io/tags/logs/</link>
+      <pubDate>Sat, 09 Jan 2021 10:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/logs/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>monitor</title>
+      <link>https://hardy1970.github.io/tags/monitor/</link>
+      <pubDate>Sat, 09 Jan 2021 10:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/monitor/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Calico</title>
+      <link>https://hardy1970.github.io/tags/Calico/</link>
+      <pubDate>Fri, 08 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Calico/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>cni</title>
+      <link>https://hardy1970.github.io/tags/cni/</link>
+      <pubDate>Fri, 08 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/cni/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Flannel</title>
+      <link>https://hardy1970.github.io/tags/Flannel/</link>
+      <pubDate>Fri, 08 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Flannel/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>kubeadm</title>
+      <link>https://hardy1970.github.io/tags/kubeadm/</link>
+      <pubDate>Fri, 08 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/kubeadm/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>bash-completion</title>
+      <link>https://hardy1970.github.io/tags/bash-completion/</link>
+      <pubDate>Fri, 08 Jan 2021 21:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/bash-completion/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>kubectl</title>
+      <link>https://hardy1970.github.io/tags/kubectl/</link>
+      <pubDate>Fri, 08 Jan 2021 21:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/kubectl/</guid>
+      <description></description>
+    </item>
+    
   </channel>
 </rss>

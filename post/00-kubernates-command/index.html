@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>00 Kubernetes概念及常用命令 | dreamLinux博客</title>
+    <meta property="og:title" content="00 Kubernetes概念及常用命令 - dreamLinux博客">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2021-01-08T21:00:00&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2021-01-08T21:00:00&#43;08:00'>
+        
+    <meta name="Keywords" content="linux,go语言,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="description" content="00 Kubernetes概念及常用命令">
+        
+    <meta name="author" content="IT干饭人">
+    <meta property="og:url" content="https://hardy1970.github.io/post/00-kubernates-command/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="https://hardy1970.github.io">
+                        dreamLinux博客
+                    </a>
+                
+                <p class="description">专注于Linux、Python、Go、Docker、ELKStack 等开源技术交流分享</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="https://hardy1970.github.io">首页</a>
+                    
+                    <a  href="https://hardy1970.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="https://hardy1970.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="https://hardy1970.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#有了docker为什么还用kubernates">有了docker，为什么还用kubernates?</a>
+      <ul>
+        <li><a href="#企业需求为提高业务并发和高可用会使用多台服务器">企业需求：为提高业务并发和高可用，会使用多台服务器</a></li>
+        <li><a href="#容器编排程序">容器编排程序</a></li>
+        <li><a href="#kubernates集群架构与组件">kubernates集群架构与组件</a></li>
+      </ul>
+    </li>
+    <li><a href="#kubectl-命令行管理工具">kubectl 命令行管理工具</a></li>
+    <li><a href="#k8s-cni网络模型">k8s CNI网络模型</a>
+      <ul>
+        <li><a href="#两台docker主机如何实现容器互通-">两台Docker主机如何实现容器互通 ？</a></li>
+        <li><a href="#k8s是一个扁平化网络">k8s是一个扁平化网络</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">00 Kubernetes概念及常用命令</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月8日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Kubernetes'>Kubernetes</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="clear" style="display: none">
+            <div class="toc-article">
+                <div class="toc-title">文章目录</div>
+            </div>
+        </div>
+        
+        <div class="post-content">
+            <h2 id="有了docker为什么还用kubernates">有了docker，为什么还用kubernates?</h2>
+<h3 id="企业需求为提高业务并发和高可用会使用多台服务器">企业需求：为提高业务并发和高可用，会使用多台服务器</h3>
+<ul>
+<li>多容器跨主机提供服务</li>
+<li>多容器分布节点部署</li>
+<li>多容器怎么升级</li>
+<li>高效管理这些容器</li>
+</ul>
+<h3 id="容器编排程序">容器编排程序</h3>
+<ul>
+<li>kubernates # 谷歌开发</li>
+<li>swarm # docker官方开发，官方目前不提供支持了</li>
+<li>Mesos Marathon # 依靠marathon框架</li>
+</ul>
+<h3 id="kubernates集群架构与组件">kubernates集群架构与组件</h3>
+<p>非二进制k8s集群安装，除了kubelet组件外，其它k8s集群组件都容器化了</p>
+<h4 id="master节点管理节点">master节点，管理节点</h4>
+<ul>
+<li>kubectl k8s命令行工具，用户操作k8s相关的的指令，会下发到api-server。</li>
+<li>api Server 处理用户发起的请求，协作各个组件，会将数据持久化到etcd中。</li>
+<li>etcd 数据存储，可部署到任意节点。</li>
+<li>scheduler 调度，创建了容器，这时候有很多台docker主机，怎么能把容器调度到合适的节点主机上。</li>
+<li>controller-manager 后台任务的管理，比如创建了多少容器，升级容器。</li>
+</ul>
+<h4 id="node节点工作节点">node节点，工作节点</h4>
+<ul>
+<li>kubelet， agent,将多个容器抽象为pod,最小的调度单元，最主要的任务创建容器，主要接收api-server下发的任务。会主动从api-server获取任务。</li>
+<li>kube-proxy 主要负责容器的网络，网络访问的策略创建、服务发现，准确的找到对应的pod。互联网访问会先到达kube-proxy创建的规则，proxy这些规则会转发到对应的容器上去提供服务。</li>
+</ul>
+<h4 id="资源概念">资源概念</h4>
+<pre><code>- pod  
+  - 最小部署单元  
+  - 一组容器的集合  
+  - 一个pod中的容器共享网络命名空间  
+  - pod是短暂的  
+- Controllers 控制器  
+  - Deployment: 无状态应用部署  
+  - Statefulset: 有状态应用部署  
+  - Daemonset: 确保所有Node运行同一个pod  
+  - job: 一次性任务  
+  - Cronjob: 定时任务  
+- service   
+  - 防止pod失联  
+  - 定义一组pod的访问策略  
+- label: 标签，附加到某个资源上，用于关联对象，查询和筛选  
+- namespaces: 命名空间  
+  - 将对象逻辑上隔离  
+  - 权限控制  
+</code></pre><h2 id="kubectl-命令行管理工具">kubectl 命令行管理工具</h2>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>故障诊断和调试命令</td>
+<td>describe</td>
+<td>显示资源详细信息</td>
+</tr>
+<tr>
+<td></td>
+<td>logs</td>
+<td>查看Pod内容器日志，如果pod有多个容器，-c参数指定容器名称</td>
+</tr>
+<tr>
+<td></td>
+<td>attach</td>
+<td>附加到pod内的一个容器</td>
+</tr>
+<tr>
+<td></td>
+<td>exec</td>
+<td>在容器内执行命令</td>
+</tr>
+<tr>
+<td></td>
+<td>port-forward</td>
+<td>为pod创建本地端口映射</td>
+</tr>
+<tr>
+<td></td>
+<td>proxy</td>
+<td>为Kubernetes APIserver创建代理</td>
+</tr>
+<tr>
+<td></td>
+<td>cp</td>
+<td>拷贝文件或者目录到容器中，或者从容器内向外拷贝</td>
+</tr>
+<tr>
+<td>高级命令</td>
+<td>apply</td>
+<td>从文件名或标准输入对资源创建、更新</td>
+</tr>
+<tr>
+<td></td>
+<td>patch</td>
+<td>使用补丁方式修改，更新资源的某些字段</td>
+</tr>
+<tr>
+<td></td>
+<td>replace</td>
+<td>从文件名或标准输入替换一个资源</td>
+</tr>
+<tr>
+<td></td>
+<td>convert</td>
+<td>在不同API版本之间转换对象定义</td>
+</tr>
+<tr>
+<td>设置命令</td>
+<td>label</td>
+<td>给资源设置、更新标签</td>
+</tr>
+<tr>
+<td></td>
+<td>annotate</td>
+<td>给资源设置、更新注解</td>
+</tr>
+<tr>
+<td></td>
+<td>completion</td>
+<td>kubectl工具自动补全，source&lt;(kubectl completion bash)(依赖软件包bash-completion)</td>
+</tr>
+<tr>
+<td>其他命令</td>
+<td>api-resources</td>
+<td>查看所有资源</td>
+</tr>
+<tr>
+<td></td>
+<td>api-versions</td>
+<td>打印受支持的API版本</td>
+</tr>
+<tr>
+<td></td>
+<td>config</td>
+<td>修改kubeconfig文件（用于访问API，比如配置认证信息）</td>
+</tr>
+<tr>
+<td></td>
+<td>help</td>
+<td>所有命令帮助</td>
+</tr>
+<tr>
+<td></td>
+<td>version</td>
+<td>查看kubectl 和 k8s版本</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>kubectl 命令补全工具</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># yum install -y  bash-completion</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># source &lt;(kubectl completion bash) </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># echo &#34;source &lt;(kubectl completion bash) &#34;&gt;&gt; /etc/profile</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pods --show-labels #查看资源标签</span>
+NAME                    READY   STATUS    RESTARTS   AGE   LABELS
+nginx-f89759699-gjl52   1/1     Running   <span style="color:#099">0</span>          38h   <span style="color:#008080">app</span><span style="color:#000;font-weight:bold">=</span>nginx,pod-template-hash<span style="color:#000;font-weight:bold">=</span>f89759699
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pods -l app=nginx  #根据标签查出资源</span>
+NAME                    READY   STATUS    RESTARTS   AGE
+nginx-f89759699-gjl52   1/1     Running   <span style="color:#099">0</span>          38h
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="k8s-cni网络模型">k8s CNI网络模型</h2>
+<p>Container Network Interface：容器网络接口，是一个容器网络规范，Kubernetes网络采用的就是这个CNI规范</p>
+<h3 id="两台docker主机如何实现容器互通-">两台Docker主机如何实现容器互通 ？</h3>
+<ul>
+<li>1 两台docker主机网络是独立</li>
+<li>2 怎么统一管理多台docker主机的容器Ip</li>
+<li>3 两台docker主机的网段是一个docker内部的网络</li>
+</ul>
+<h3 id="k8s是一个扁平化网络">k8s是一个扁平化网络</h3>
+<p>即所有部署的网络组件都必须满足如下要求：</p>
+<ul>
+<li>一个pod一个IP</li>
+<li>所有的pod可以与任何其他pod直接通信</li>
+<li>所有节点可以与所有pod直接通信</li>
+<li>pod内部获取到的IP地址与其他pod或节点与其通信时的IP地址是同一个</li>
+</ul>
+<p>CNI网络网络组件选型依据：</p>
+<ul>
+<li>服务器规模</li>
+<li>支持的功能</li>
+<li>性能</li>
+</ul>
+<h4 id="主流网络组件有flannelcalico等">主流网络组件有：Flannel,Calico等</h4>
+<ul>
+<li>
+<p>Calico
+Calico是一个纯三层的数据中心网络方案，calico支持广泛的平台，包括kubernetes、openstack等;<br>
+Calico在每一个计算节点利用linux kernel实现了一个高效的虚拟路由器（vRoter）来负责数据转发，而每个vRouter通过BGP协议负责把自己，本机通信不会走calico 组件;</p>
+</li>
+<li>
+<p>Flannel
+Flannel是CoreOS维护的一个网络组件，Flannel为每个Pod提供全局唯一的IP，Flannel使用ETCD来存储Pod子网与Node IP之间的关系。flanneld守护进程在每台主机上运行，并负责维护ETCD信息和路由数据包。</p>
+</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+sed -i -r <span style="color:#d14">&#34;s#quay.io/coreos/flannel:.*-amd64#lizhenliang/flannel:v0.11.0-amd64#g&#34;</span> kube-flannel.yml <span style="color:#998;font-style:italic"># 修改国内镜像仓库</span>
+<span style="color:#998;font-style:italic">## 部署cni</span>
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+</code></pre></td></tr></table>
+</div>
+</div>
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="https://hardy1970.github.io">IT干饭人</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="https://hardy1970.github.io/post/00-kubernates-command/">https://hardy1970.github.io/post/00-kubernates-command/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/about/">关于我</a></li>
+        
+        <li><a href="/archives/">归档</a></li>
+        
+        <li><a href="/search/">搜索</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            <ul class="clearfix">
+                
+                <li><a href='/tags/Kubernetes'>Kubernetes</a></li>
+                
+                <li><a href='/tags/kubectl'>kubectl</a></li>
+                
+                <li><a href='/tags/bash-completion'>bash-completion</a></li>
+                
+                <li><a href='/tags/Calico'>Calico</a></li>
+                
+                <li><a href='/tags/cni'>cni</a></li>
+                
+            </ul>
+            
+        </div>
+    </article>
+    
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "yourdiscussshortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="https://hardy1970.github.io">dreamLinux博客 By IT干饭人</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="http://hardy1970.github.io/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">IT干饭人</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='https://hardy1970.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="https://hardy1970.github.io">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/" title="10 在k8s平台部署一个网站">10 在k8s平台部署一个网站</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络">05 Kubernetes 网络</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度">04 Kubernetes 资源调度</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理">03 Kubernetes 应用程序生命周期管理</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/02-kubernates-monitor-logs/" title="02 Kubernetes 监控与日志">02 Kubernetes 监控与日志</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/01-kubernates-install/" title="01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/00-kubernates-command/" title="00 Kubernetes概念及常用命令">00 Kubernetes概念及常用命令</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title" style="color:red">福利派送</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a href="https://www.aliyun.com/minisite/goods?userCode=jdg9oj97&amp;share_source=copy_link" title="【2019双12】ALL IN CLoud 低至1折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1_rYHo7P2gK0jSZPxXXacQpXa-690-388.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://cloud.tencent.com/act/cps/redirect?redirect=1048&amp;cps_key=14ff722692ac784fa8c3301c8c28d924&amp;from=console" title="助力产业智慧升级，云服务器首年88元起，更有千元代金券礼包免费领！" target="_blank" style="color:red">
+                
+                    <img src="https://upload-dianshi-1255598498.file.myqcloud.com/345-7c71532bd4935fbdd9a67c1a71e577b1767b805c.200%E7%89%88%E6%9C%ACB.jpg">
+                
+            </a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (7)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+    <a href="https://hardy1970.github.io/tags/Calico/">Calico</a>
+    
+    <a href="https://hardy1970.github.io/tags/Deployment/">Deployment</a>
+    
+    <a href="https://hardy1970.github.io/tags/Flannel/">Flannel</a>
+    
+    <a href="https://hardy1970.github.io/tags/Ingress/">Ingress</a>
+    
+    <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/Service/">Service</a>
+    
+    <a href="https://hardy1970.github.io/tags/bash-completion/">bash-completion</a>
+    
+    <a href="https://hardy1970.github.io/tags/cni/">cni</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubeadm/">kubeadm</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubectl/">kubectl</a>
+    
+    <a href="https://hardy1970.github.io/tags/logs/">logs</a>
+    
+    <a href="https://hardy1970.github.io/tags/monitor/">monitor</a>
+    
+    <a href="https://hardy1970.github.io/tags/network/">network</a>
+    
+    <a href="https://hardy1970.github.io/tags/pod/">pod</a>
+    
+    <a href="https://hardy1970.github.io/tags/scale/">scale</a>
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://hardy1970.github.io/" title="dreamLinux博客">dreamLinux博客</a>
+        </li>
+        
+        <li>
+            <a target="_blank" href="http://yuedu.baidu.com/ebook/14a722970740be1e640e9a3e" title="Android Gradle权威指南">Android Gradle权威指南</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="https://hardy1970.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
