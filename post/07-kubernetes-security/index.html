@@ -1,0 +1,1386 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control) | dreamLinux博客</title>
+    <meta property="og:title" content="07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control) - dreamLinux博客">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2021-01-10T15:30:00&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2021-01-10T15:30:00&#43;08:00'>
+        
+    <meta name="Keywords" content="linux,python,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="description" content="07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)">
+        
+    <meta name="author" content="IT干饭人">
+    <meta property="og:url" content="https://hardy1970.github.io/post/07-kubernetes-security/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="https://hardy1970.github.io">
+                        dreamLinux博客
+                    </a>
+                
+                <p class="description">专注于Linux、Python、Go、Docker、ELKStack 等开源技术交流分享</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="https://hardy1970.github.io">首页</a>
+                    
+                    <a  href="https://hardy1970.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="https://hardy1970.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="https://hardy1970.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#kubernetes-安全框架">kubernetes 安全框架</a>
+      <ul>
+        <li><a href="#k8s安全控制框架主要由下面3个阶段进行控制每一个阶段都支持插件方式通过api-server配置来启用插件">k8s安全控制框架主要由下面3个阶段进行控制，每一个阶段都支持插件方式，通过API Server配置来启用插件。</a></li>
+      </ul>
+    </li>
+    <li><a href="#网络策略概述">网络策略概述</a>
+      <ul>
+        <li><a href="#网络策略network-policy用于限制pod出入流量提供pod级别和namespace级别网络访问控制">网络策略（network policy）,用于限制Pod出入流量，提供Pod级别和Namespace级别网络访问控制。</a></li>
+        <li><a href="#案例对项目pod出入流量访问控制">案例：对项目pod出入流量访问控制</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月10日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Kubernetes'>Kubernetes</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="clear" style="display: none">
+            <div class="toc-article">
+                <div class="toc-title">文章目录</div>
+            </div>
+        </div>
+        
+        <div class="post-content">
+            <h2 id="kubernetes-安全框架">kubernetes 安全框架</h2>
+<h3 id="k8s安全控制框架主要由下面3个阶段进行控制每一个阶段都支持插件方式通过api-server配置来启用插件">k8s安全控制框架主要由下面3个阶段进行控制，每一个阶段都支持插件方式，通过API Server配置来启用插件。</h3>
+<ul>
+<li>客户端要想访问k8s集群API Server，一般需要证书、Token或者用户名+密码；如果Pod访问，需要ServiceAccount
+<ul>
+<li>
+<p>Authentication (鉴权)</p>
+</li>
+<li>
+<p>Authorization (授权)</p>
+</li>
+<li>
+<p>Adminssion Control (准入控制)</p>
+</li>
+<li>
+<p>1 Authentication (鉴权)</p>
+<ul>
+<li>https证书认证：基于CA证书签名的数字证书认证 /etc/kubernetes/pki</li>
+<li>https Token认证：通过一个Token来识别用户</li>
+<li>http Base认证：用户名+密码方式认证</li>
+</ul>
+</li>
+<li>
+<p>2 Authorization (授权)</p>
+<ul>
+<li>
+<p>RBAC (Role-Based Access Control, 基于角色的访问控制，允许通过kubernetes API动态配置策略) : 负责完成授权工作。</p>
+<ul>
+<li>
+<p>RBAC根据API请求属性，决定允许还是拒绝[https://kubernetes.io/zh/docs/reference/access-authn-authz/rbac/]</p>
+</li>
+<li>
+<p>比较常见的授权维度：</p>
+<ul>
+<li>user: 用户名</li>
+<li>group: 用户分组</li>
+<li>资源，例如pod，deployment</li>
+<li>资源操作方法：get，list，create， update，pach，watch, delete</li>
+<li>命名空间</li>
+<li>API组</li>
+</ul>
+</li>
+<li>
+<p>角色</p>
+<ul>
+<li>Role: 授权特定命名空间的访问权限</li>
+<li>ClusterRole: 授权所有命名空间的访问权限</li>
+</ul>
+</li>
+<li>
+<p>角色绑定</p>
+<ul>
+<li>RoleBinding: 将角色绑定到主体(即subject)</li>
+<li>ClusterRoleBinding: 将集群角色绑定到主体</li>
+</ul>
+</li>
+<li>
+<p>主体(subject)</p>
+<ul>
+<li>User: 用户</li>
+<li>Group: 用户组</li>
+<li>Service Account: 服务账号</li>
+</ul>
+</li>
+<li>
+<p>关系图
+
+        <img class="mx-auto" alt="" src="/img/%e8%a7%92%e8%89%b2-%e8%a7%92%e8%89%b2%e7%bb%91%e5%ae%9a-%e4%b8%bb%e4%bd%93%e5%85%b3%e7%b3%bb%e5%9b%be.png" />   
+    </p>
+</li>
+<li>
+<p>实例：为aliang用户授权default命名空间Pod读取权限</p>
+</li>
+<li>
+<p>1 用k8s CA签发客户端证书</p>
+<ul>
+<li>证书生成工具安装</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat cfssl.sh </span>
+wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
+chmod +x cfssl*
+mv cfssl_linux-amd64 /usr/bin/cfssl <span style="color:#998;font-style:italic"># 生成证书的</span>
+mv cfssljson_linux-amd64 /usr/bin/cfssljson <span style="color:#998;font-style:italic"># 读取json</span>
+mv cfssl-certinfo_linux-amd64 /usr/bin/cfssl-certinfo <span style="color:#998;font-style:italic"># 查看证书信息的</span>
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>生成证书</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat cert.sh </span>
+cat &gt; ca-config.json <span style="color:#d14">&lt;&lt;EOF
+</span><span style="color:#d14">{
+</span><span style="color:#d14">  &#34;signing&#34;: {
+</span><span style="color:#d14">    &#34;default&#34;: {
+</span><span style="color:#d14">      &#34;expiry&#34;: &#34;87600h&#34;
+</span><span style="color:#d14">    },
+</span><span style="color:#d14">    &#34;profiles&#34;: {
+</span><span style="color:#d14">      &#34;kubernetes&#34;: {
+</span><span style="color:#d14">        &#34;usages&#34;: [
+</span><span style="color:#d14">            &#34;signing&#34;,
+</span><span style="color:#d14">            &#34;key encipherment&#34;,
+</span><span style="color:#d14">            &#34;server auth&#34;,
+</span><span style="color:#d14">            &#34;client auth&#34;
+</span><span style="color:#d14">        ],
+</span><span style="color:#d14">        &#34;expiry&#34;: &#34;87600h&#34;
+</span><span style="color:#d14">      }
+</span><span style="color:#d14">    }
+</span><span style="color:#d14">  }
+</span><span style="color:#d14">}
+</span><span style="color:#d14">EOF</span>
+        
+cat &gt; aliang-csr.json <span style="color:#d14">&lt;&lt;EOF
+</span><span style="color:#d14">{
+</span><span style="color:#d14">  &#34;CN&#34;: &#34;aliang&#34;,
+</span><span style="color:#d14">  &#34;hosts&#34;: [],
+</span><span style="color:#d14">  &#34;key&#34;: {
+</span><span style="color:#d14">    &#34;algo&#34;: &#34;rsa&#34;,
+</span><span style="color:#d14">    &#34;size&#34;: 2048
+</span><span style="color:#d14">  },
+</span><span style="color:#d14">  &#34;names&#34;: [
+</span><span style="color:#d14">    {
+</span><span style="color:#d14">      &#34;C&#34;: &#34;CN&#34;,
+</span><span style="color:#d14">      &#34;ST&#34;: &#34;BeiJing&#34;,
+</span><span style="color:#d14">      &#34;L&#34;: &#34;BeiJing&#34;,
+</span><span style="color:#d14">      &#34;O&#34;: &#34;k8s&#34;,
+</span><span style="color:#d14">      &#34;OU&#34;: &#34;System&#34;
+</span><span style="color:#d14">    }
+</span><span style="color:#d14">  ]
+</span><span style="color:#d14">}
+</span><span style="color:#d14">EOF</span>
+        
+cfssl gencert -ca<span style="color:#000;font-weight:bold">=</span>/etc/kubernetes/pki/ca.crt -ca-key<span style="color:#000;font-weight:bold">=</span>/etc/kubernetes/pki/ca.key -config<span style="color:#000;font-weight:bold">=</span>ca-config.json -profile<span style="color:#000;font-weight:bold">=</span>kubernetes aliang-csr.json | cfssljson -bare aliang
+        
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># sh cert.sh </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># ll</span>
+total <span style="color:#099">24</span>
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">997</span> Dec <span style="color:#099">30</span> 01:01 aliang.csr
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">219</span> Dec <span style="color:#099">30</span> 01:01 aliang-csr.json
+-rw------- <span style="color:#099">1</span> root root <span style="color:#099">1675</span> Dec <span style="color:#099">30</span> 01:01 aliang-key.pem
+-rw-r--r-- <span style="color:#099">1</span> root root <span style="color:#099">1233</span> Dec <span style="color:#099">30</span> 01:01 aliang.pem
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">292</span> Dec <span style="color:#099">30</span> 01:01 ca-config.json
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">740</span> Dec <span style="color:#099">30</span> 01:00 cert.sh
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>2 生成kubeconfig授权文件</p>
+</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl cluster-info</span>
+Kubernetes master is running at https://192.168.241.121:6443
+KubeDNS is running at https://192.168.241.121:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Metrics-server is running at https://192.168.241.121:6443/api/v1/namespaces/kube-system/services/https:metrics-server:/proxy
+To further debug and diagnose cluster problems, use <span style="color:#d14">&#39;kubectl cluster-info dump&#39;</span>.
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat kubeconfig.sh </span>
+<span style="color:#998;font-style:italic"># 配置集群相关的信息 </span>
+kubectl config set-cluster kubernetes <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --certificate-authority<span style="color:#000;font-weight:bold">=</span>/etc/kubernetes/pki/ca.crt <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --embed-certs<span style="color:#000;font-weight:bold">=</span><span style="color:#0086b3">true</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --server<span style="color:#000;font-weight:bold">=</span>https://192.168.241.121:6443 <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --kubeconfig<span style="color:#000;font-weight:bold">=</span>aliang.kubeconfig
+       
+<span style="color:#998;font-style:italic"># 设置客户端认证  </span>
+kubectl config set-credentials aliang <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --client-key<span style="color:#000;font-weight:bold">=</span>aliang-key.pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --client-certificate<span style="color:#000;font-weight:bold">=</span>aliang.pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --embed-certs<span style="color:#000;font-weight:bold">=</span><span style="color:#0086b3">true</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --kubeconfig<span style="color:#000;font-weight:bold">=</span>aliang.kubeconfig
+      
+<span style="color:#998;font-style:italic"># 设置默认上下文 设置具体连哪个集群</span>
+kubectl config set-context kubernetes <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --cluster<span style="color:#000;font-weight:bold">=</span>kubernetes <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --user<span style="color:#000;font-weight:bold">=</span>aliang <span style="color:#d14">\
+</span><span style="color:#d14"></span>  --kubeconfig<span style="color:#000;font-weight:bold">=</span>aliang.kubeconfig
+      
+<span style="color:#998;font-style:italic"># 设置当前使用配置</span>
+kubectl config use-context kubernetes --kubeconfig<span style="color:#000;font-weight:bold">=</span>aliang.kubeconfig
+      
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># sh kubeconfig.sh </span>
+Cluster <span style="color:#d14">&#34;kubernetes&#34;</span> set.
+User <span style="color:#d14">&#34;aliang&#34;</span> set.
+Context <span style="color:#d14">&#34;kubernetes&#34;</span> created.
+Switched to context <span style="color:#d14">&#34;kubernetes&#34;</span>.
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># pwd</span>
+/root/demo/rbac
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># ll</span>
+total <span style="color:#099">36</span>
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">997</span> Dec <span style="color:#099">30</span> 01:01 aliang.csr
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">219</span> Dec <span style="color:#099">30</span> 01:01 aliang-csr.json
+-rw------- <span style="color:#099">1</span> root root <span style="color:#099">1675</span> Dec <span style="color:#099">30</span> 01:01 aliang-key.pem
+-rw------- <span style="color:#099">1</span> root root <span style="color:#099">5597</span> Dec <span style="color:#099">30</span> 01:07 aliang.kubeconfig
+-rw-r--r-- <span style="color:#099">1</span> root root <span style="color:#099">1233</span> Dec <span style="color:#099">30</span> 01:01 aliang.pem
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">292</span> Dec <span style="color:#099">30</span> 01:01 ca-config.json
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">740</span> Dec <span style="color:#099">30</span> 01:00 cert.sh
+-rw-r--r-- <span style="color:#099">1</span> root root  <span style="color:#099">683</span> Dec <span style="color:#099">30</span> 01:06 kubeconfig.sh
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl --kubeconfig=/root/demo/rbac/aliang.kubeconfig get node  #此处发现无权限</span>
+Error from server <span style="color:#000;font-weight:bold">(</span>Forbidden<span style="color:#000;font-weight:bold">)</span>: nodes is forbidden: User <span style="color:#d14">&#34;aliang&#34;</span> cannot list resource <span style="color:#d14">&#34;nodes&#34;</span> in API group <span style="color:#d14">&#34;&#34;</span> at the cluster scope
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>3 创建RBAC权限策略</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat rbac.yaml </span>
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: <span style="color:#000;font-weight:bold">[</span><span style="color:#d14">&#34;&#34;</span>, <span style="color:#d14">&#34;apps&#34;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#998;font-style:italic"># 默认是核心组，pod是在核心组，deployment是在apps组</span>
+  resources: <span style="color:#000;font-weight:bold">[</span><span style="color:#d14">&#34;pods&#34;</span>, <span style="color:#d14">&#34;deployments&#34;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#998;font-style:italic"># 指定的资源</span>
+  verbs: <span style="color:#000;font-weight:bold">[</span><span style="color:#d14">&#34;get&#34;</span>, <span style="color:#d14">&#34;watch&#34;</span>, <span style="color:#d14">&#34;list&#34;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#998;font-style:italic"># 对资源的操作</span>
+      
+---
+      
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+- kind: User
+  name: aliang
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl apply -f rbac.yaml </span>
+role.rbac.authorization.k8s.io/pod-reader created
+rolebinding.rbac.authorization.k8s.io/read-pods created
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl --kubeconfig=/root/demo/rbac/aliang.kubeconfig  get pod #再次查看发现ok</span>
+NAME                                      READY   STATUS    RESTARTS   AGE
+configmap-demo-pod                        1/1     Running   <span style="color:#099">0</span>          147m
+dns                                       1/1     Running   <span style="color:#099">1</span>          21d
+my-pod-hostpath                           1/1     Running   <span style="color:#099">1</span>          13h
+nfs-client-provisioner-5f6bb8ffd9-5rtlv   1/1     Running   <span style="color:#099">0</span>          9h
+secret-demo-pod                           1/1     Running   <span style="color:#099">0</span>          118m
+sh                                        1/1     Running   <span style="color:#099">1</span>          3h24m
+web-0                                     1/1     Running   <span style="color:#099">0</span>          4h9m
+web-1                                     1/1     Running   <span style="color:#099">0</span>          4h8m
+web-2                                     1/1     Running   <span style="color:#099">0</span>          4h8m
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>回顾 calicao.yaml 安装时，涉及到的RBAC也是类似情况</li>
+<li>认证流程
+
+        <img class="mx-auto" alt="" src="/img/%e8%ae%a4%e8%af%81%e6%b5%81%e7%a8%8b.png" />   
+    </li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>3 Adminssion Control (准入控制)</p>
+<ul>
+<li>Adminssion Control 实际上市一个准入控制器插件列表，发送到API Sserver的请求都需要经过这个列表中的每个准入控制器插件的检查，检查不通过，则拒绝请求。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="网络策略概述">网络策略概述</h2>
+<h3 id="网络策略network-policy用于限制pod出入流量提供pod级别和namespace级别网络访问控制">网络策略（network policy）,用于限制Pod出入流量，提供Pod级别和Namespace级别网络访问控制。</h3>
+<ul>
+<li>场景
+<ul>
+<li>应用程序见的访问控制，例如微服务A允许访问微服务B，微服务C不能访问微服务A</li>
+<li>开发环境命名空间不能访问测试环境命名空间Pod</li>
+<li>当Pod暴露到外部时，需要做Pod白名单</li>
+<li>多租户网络环境隔离</li>
+</ul>
+</li>
+<li>Pod网络入口方向隔离：
+<ul>
+<li>基于Pod网络隔离：只允许特定对象访问Pod(使用标签定义)，允许白名单上的IP地址或者IP段访问Pod</li>
+<li>基于Namespace级别网络隔离：多个命名空间，A和B命名空间Pod完全隔离</li>
+</ul>
+</li>
+<li>Pod网络出口方向隔离：
+<ul>
+<li>拒绝某个Namespace上所有Pod访问外部</li>
+<li>基于目标IP的网络隔离：只允许Pod访问白名单上的IP地址或者IP段</li>
+<li>基于目标端口的网络隔离：只允许Pod访问白名单上的端口</li>
+</ul>
+</li>
+<li>图解
+        <img class="mx-auto" alt="" src="/img/%e7%bd%91%e7%bb%9c%e7%ad%96%e7%95%a5.png" />   
+    
+<ul>
+<li>podSelector: {} 如果未配置，默认所有Pod</li>
+<li>from.podSelector: {}:如果未配置，默认不允许</li>
+</ul>
+</li>
+<li>其它说明
+<ul>
+<li>calico 支持网络策略，fannel不支持</li>
+</ul>
+</li>
+</ul>
+<h3 id="案例对项目pod出入流量访问控制">案例：对项目pod出入流量访问控制</h3>
+<ul>
+<li>
+<p>案例一</p>
+<ul>
+<li>将default命名空间携带app=web标签的Pod隔离，只允许default命名空间携带run=client1标签的Pod访问80端口</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 59
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 60
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 61
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 62
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 63
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 64
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 65
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 66
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 67
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 68
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 69
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 70
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 71
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 72
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 73
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 74
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 75
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 76
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 77
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 78
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 79
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 80
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 81
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 82
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 83
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 84
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 85
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 86
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 87
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 88
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 89
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 90
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 91
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 92
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 93
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 94
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 95
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 96
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 97
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 98
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 99
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">100
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">101
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">102
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">103
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">104
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl create deployment web --image=nginx </span>
+deployment.apps/web created
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl run client1 --image=busybox -- sleep 36000</span>
+pod/client1 created
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl run client2 --image=busybox -- sleep 36000</span>
+pod/client2 created
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod --show-labels</span>
+NAME                                      READY   STATUS    RESTARTS   AGE     LABELS
+client1                                   1/1     Running   <span style="color:#099">0</span>          29s     <span style="color:#008080">run</span><span style="color:#000;font-weight:bold">=</span>client1
+client2                                   1/1     Running   <span style="color:#099">0</span>          16s     <span style="color:#008080">run</span><span style="color:#000;font-weight:bold">=</span>client2
+configmap-demo-pod                        1/1     Running   <span style="color:#099">0</span>          175m    &lt;none&gt;
+dns                                       1/1     Running   <span style="color:#099">1</span>          21d     <span style="color:#008080">run</span><span style="color:#000;font-weight:bold">=</span>dns
+my-pod-hostpath                           1/1     Running   <span style="color:#099">1</span>          14h     &lt;none&gt;
+nfs-client-provisioner-5f6bb8ffd9-5rtlv   1/1     Running   <span style="color:#099">0</span>          10h     <span style="color:#008080">app</span><span style="color:#000;font-weight:bold">=</span>nfs-client-provisioner,pod-template-hash<span style="color:#000;font-weight:bold">=</span>5f6bb8ffd9
+secret-demo-pod                           1/1     Running   <span style="color:#099">0</span>          146m    &lt;none&gt;
+sh                                        1/1     Running   <span style="color:#099">1</span>          3h53m   <span style="color:#008080">run</span><span style="color:#000;font-weight:bold">=</span>sh
+web-0                                     1/1     Running   <span style="color:#099">0</span>          4h37m   <span style="color:#008080">app</span><span style="color:#000;font-weight:bold">=</span>nginx,controller-revision-hash<span style="color:#000;font-weight:bold">=</span>web-67bb74dc,statefulset.kubernetes.io/pod-name<span style="color:#000;font-weight:bold">=</span>web-0
+web-1                                     1/1     Running   <span style="color:#099">0</span>          4h37m   <span style="color:#008080">app</span><span style="color:#000;font-weight:bold">=</span>nginx,controller-revision-hash<span style="color:#000;font-weight:bold">=</span>web-67bb74dc,statefulset.kubernetes.io/pod-name<span style="color:#000;font-weight:bold">=</span>web-1
+web-2                                     1/1     Running   <span style="color:#099">0</span>          4h37m   <span style="color:#008080">app</span><span style="color:#000;font-weight:bold">=</span>nginx,controller-revision-hash<span style="color:#000;font-weight:bold">=</span>web-67bb74dc,statefulset.kubernetes.io/pod-name<span style="color:#000;font-weight:bold">=</span>web-2
+web-5dcb957ccc-q9lcv                      1/1     Running   <span style="color:#099">0</span>          65s     <span style="color:#008080">app</span><span style="color:#000;font-weight:bold">=</span>web,pod-template-hash<span style="color:#000;font-weight:bold">=</span>5dcb957ccc
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod  -o wide</span>
+NAME                                      READY   STATUS    RESTARTS   AGE     IP               NODE     NOMINATED NODE   READINESS GATES
+client1                                   1/1     Running   <span style="color:#099">0</span>          5m24s   10.244.186.245   node03   &lt;none&gt;           &lt;none&gt;
+client2                                   1/1     Running   <span style="color:#099">0</span>          5m11s   10.244.186.246   node03   &lt;none&gt;           &lt;none&gt;
+configmap-demo-pod                        1/1     Running   <span style="color:#099">0</span>          3h      10.244.140.114   node02   &lt;none&gt;           &lt;none&gt;
+dns                                       1/1     Running   <span style="color:#099">1</span>          21d     10.244.186.230   node03   &lt;none&gt;           &lt;none&gt;
+my-pod-hostpath                           1/1     Running   <span style="color:#099">1</span>          14h     10.244.186.232   node03   &lt;none&gt;           &lt;none&gt;
+nfs-client-provisioner-5f6bb8ffd9-5rtlv   1/1     Running   <span style="color:#099">0</span>          10h     10.244.140.108   node02   &lt;none&gt;           &lt;none&gt;
+secret-demo-pod                           1/1     Running   <span style="color:#099">0</span>          151m    10.244.186.244   node03   &lt;none&gt;           &lt;none&gt;
+sh                                        1/1     Running   <span style="color:#099">1</span>          3h58m   10.244.140.113   node02   &lt;none&gt;           &lt;none&gt;
+web-0                                     1/1     Running   <span style="color:#099">0</span>          4h42m   10.244.186.241   node03   &lt;none&gt;           &lt;none&gt;
+web-1                                     1/1     Running   <span style="color:#099">0</span>          4h42m   10.244.186.242   node03   &lt;none&gt;           &lt;none&gt;
+web-2                                     1/1     Running   <span style="color:#099">0</span>          4h41m   10.244.140.111   node02   &lt;none&gt;           &lt;none&gt;
+web-5dcb957ccc-q9lcv                      1/1     Running   <span style="color:#099">0</span>          6m      10.244.140.115   node02   &lt;none&gt;           &lt;none&gt;
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client1 -- ping 10.244.140.115 </span>
+PING 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115<span style="color:#000;font-weight:bold">)</span>: <span style="color:#099">56</span> data bytes
+<span style="color:#099">64</span> bytes from 10.244.140.115: <span style="color:#008080">seq</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">0</span> <span style="color:#008080">ttl</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">62</span> <span style="color:#008080">time</span><span style="color:#000;font-weight:bold">=</span>3.579 ms
+<span style="color:#099">64</span> bytes from 10.244.140.115: <span style="color:#008080">seq</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">1</span> <span style="color:#008080">ttl</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">62</span> <span style="color:#008080">time</span><span style="color:#000;font-weight:bold">=</span>2.395 ms
+^C
+--- 10.244.140.115 ping statistics ---
+<span style="color:#099">2</span> packets transmitted, <span style="color:#099">2</span> packets received, 0% packet loss
+round-trip min/avg/max <span style="color:#000;font-weight:bold">=</span> 2.395/2.987/3.579 ms
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client1 -- curl 10.244.140.115</span>
+OCI runtime <span style="color:#0086b3">exec</span> failed: <span style="color:#0086b3">exec</span> failed: container_linux.go:348: starting container process caused <span style="color:#d14">&#34;exec: \&#34;curl\&#34;: executable file not found in </span><span style="color:#008080">$PATH</span><span style="color:#d14">&#34;</span>: unknown
+<span style="color:#0086b3">command</span> terminated with <span style="color:#0086b3">exit</span> code <span style="color:#099">126</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client1 -- wget 10.244.140.115</span>
+Connecting to 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115:80<span style="color:#000;font-weight:bold">)</span>
+saving to <span style="color:#d14">&#39;index.html&#39;</span>
+index.html           100% |********************************|   <span style="color:#099">612</span>  0:00:00 ETA
+<span style="color:#d14">&#39;index.html&#39;</span> saved
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client2 -- wget 10.244.140.115</span>
+Connecting to 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115:80<span style="color:#000;font-weight:bold">)</span>
+saving to <span style="color:#d14">&#39;index.html&#39;</span>
+index.html           100% |********************************|   <span style="color:#099">612</span>  0:00:00 ETA
+<span style="color:#d14">&#39;index.html&#39;</span> saved
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+
+<span style="color:#998;font-style:italic">#添加网络控制策略</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat  network-policy.yaml </span>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          project: default
+    - podSelector:
+        matchLabels:
+          run: client1
+    ports:
+    - protocol: TCP
+      port: <span style="color:#099">80</span>
+    
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl apply -f network-policy.yaml</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client1 -- ping 10.244.140.115</span>
+PING 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115<span style="color:#000;font-weight:bold">)</span>: <span style="color:#099">56</span> data bytes
+^C
+--- 10.244.140.115 ping statistics ---
+<span style="color:#099">18</span> packets transmitted, <span style="color:#099">0</span> packets received, 100% packet loss
+<span style="color:#0086b3">command</span> terminated with <span style="color:#0086b3">exit</span> code <span style="color:#099">1</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client1 -- wget 10.244.140.115  # 此时client1 正常访问</span>
+Connecting to 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115:80<span style="color:#000;font-weight:bold">)</span>
+saving to <span style="color:#d14">&#39;index.html&#39;</span>
+index.html           100% |********************************|   <span style="color:#099">612</span>  0:00:00 ETA
+<span style="color:#d14">&#39;index.html&#39;</span> saved
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client2 -- wget 10.244.140.115 # 此时client2 无法访问</span>
+Connecting to 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115:80<span style="color:#000;font-weight:bold">)</span>
+^Ccommand terminated with <span style="color:#0086b3">exit</span> code <span style="color:#099">130</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client2 -- ping 10.244.140.115</span>
+PING 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115<span style="color:#000;font-weight:bold">)</span>: <span style="color:#099">56</span> data bytes
+^C
+--- 10.244.140.115 ping statistics ---
+<span style="color:#099">3</span> packets transmitted, <span style="color:#099">0</span> packets received, 100% packet loss
+<span style="color:#0086b3">command</span> terminated with <span style="color:#0086b3">exit</span> code <span style="color:#099">1</span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>案例二</p>
+<ul>
+<li>default命名空间下所有pod可以互相访问，也可以访问其他命名空间pod，其他命名空间不能访问default命名空间pod
+<ul>
+<li>podSelector: {}  # 默认所有pod</li>
+<li>from.podSelector: {} #未配置的话，默认不允许</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">59
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl run client3 --image=busybox -n kube-system -- sleep 36000 #在kube-system 空间创建client3</span>
+pod/client3 created
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod  -n kube-system </span>
+NAME                                       READY   STATUS              RESTARTS   AGE
+calico-kube-controllers-7dbc97f587-f4ngh   1/1     Running             <span style="color:#099">0</span>          22d
+calico-node-lcjvs                          1/1     Running             <span style="color:#099">0</span>          22d
+calico-node-nt8sw                          1/1     Running             <span style="color:#099">0</span>          22d
+calico-node-vlpq7                          1/1     Running             <span style="color:#099">0</span>          22d
+client3                                    0/1     Running             <span style="color:#099">0</span>          13s
+coredns-7ff77c879f-flmt9                   1/1     Running             <span style="color:#099">0</span>          22d
+coredns-7ff77c879f-xvmxq                   1/1     Running             <span style="color:#099">0</span>          22d
+etcd-node01                                1/1     Running             <span style="color:#099">0</span>          22d
+filebeat-rjxwm                             1/1     Running             <span style="color:#099">0</span>          21d
+filebeat-v4kfg                             1/1     Running             <span style="color:#099">0</span>          21d
+kube-apiserver-node01                      1/1     Running             <span style="color:#099">0</span>          22d
+kube-controller-manager-node01             1/1     Running             <span style="color:#099">1</span>          22d
+kube-proxy-f9574                           1/1     Running             <span style="color:#099">0</span>          22d
+kube-proxy-sdgq2                           1/1     Running             <span style="color:#099">0</span>          22d
+kube-proxy-xqfd2                           1/1     Running             <span style="color:#099">0</span>          21d
+kube-scheduler-node01                      1/1     Running             <span style="color:#099">1</span>          22d
+metrics-server-686c5b74f5-8fdbk            1/1     Running             <span style="color:#099">0</span>          22d
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client3 -n kube-system -- ping 10.244.140.115 # client3不加限制的情况下可以访问default</span>
+PING 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115<span style="color:#000;font-weight:bold">)</span>: <span style="color:#099">56</span> data bytes
+<span style="color:#099">64</span> bytes from 10.244.140.115: <span style="color:#008080">seq</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">0</span> <span style="color:#008080">ttl</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">63</span> <span style="color:#008080">time</span><span style="color:#000;font-weight:bold">=</span>2.713 ms
+<span style="color:#099">64</span> bytes from 10.244.140.115: <span style="color:#008080">seq</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">1</span> <span style="color:#008080">ttl</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">63</span> <span style="color:#008080">time</span><span style="color:#000;font-weight:bold">=</span>0.196 ms
+<span style="color:#099">64</span> bytes from 10.244.140.115: <span style="color:#008080">seq</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">2</span> <span style="color:#008080">ttl</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">63</span> <span style="color:#008080">time</span><span style="color:#000;font-weight:bold">=</span>0.178 ms
+^C
+--- 10.244.140.115 ping statistics ---
+<span style="color:#099">3</span> packets transmitted, <span style="color:#099">3</span> packets received, 0% packet loss
+round-trip min/avg/max <span style="color:#000;font-weight:bold">=</span> 0.178/1.029/2.713 ms
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat network-policy2.yaml </span>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy-namespace
+  namespace: default
+spec:
+  podSelector: <span style="color:#000;font-weight:bold">{}</span>
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector: <span style="color:#000;font-weight:bold">{}</span>
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client3 -n kube-system -- ping 10.244.140.115 #加完限制后client3无法访问default</span>
+PING 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115<span style="color:#000;font-weight:bold">)</span>: <span style="color:#099">56</span> data bytes
+    
+^C
+--- 10.244.140.115 ping statistics ---
+<span style="color:#099">2</span> packets transmitted, <span style="color:#099">0</span> packets received, 100% packet loss
+<span style="color:#0086b3">command</span> terminated with <span style="color:#0086b3">exit</span> code <span style="color:#099">1</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 rbac<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it client2 -- ping 10.244.140.115 #default下的client2 可以正常访问</span>
+PING 10.244.140.115 <span style="color:#000;font-weight:bold">(</span>10.244.140.115<span style="color:#000;font-weight:bold">)</span>: <span style="color:#099">56</span> data bytes
+<span style="color:#099">64</span> bytes from 10.244.140.115: <span style="color:#008080">seq</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">0</span> <span style="color:#008080">ttl</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">62</span> <span style="color:#008080">time</span><span style="color:#000;font-weight:bold">=</span>1.455 ms
+<span style="color:#099">64</span> bytes from 10.244.140.115: <span style="color:#008080">seq</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">1</span> <span style="color:#008080">ttl</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">62</span> <span style="color:#008080">time</span><span style="color:#000;font-weight:bold">=</span>0.870 ms
+^C
+--- 10.244.140.115 ping statistics ---
+<span style="color:#099">2</span> packets transmitted, <span style="color:#099">2</span> packets received, 0% packet loss
+round-trip min/avg/max <span style="color:#000;font-weight:bold">=</span> 0.870/1.162/1.455 ms
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="https://hardy1970.github.io">IT干饭人</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="https://hardy1970.github.io/post/07-kubernetes-security/">https://hardy1970.github.io/post/07-kubernetes-security/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/06-kubernetes-storage/">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</a></li>
+        
+        <li><a href="/post/05-kubernetes-network/">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a></li>
+        
+        <li><a href="/post/04-kubernates-schedule/">04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</a></li>
+        
+        <li><a href="/post/03-kubernetes-life-cycle/">03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</a></li>
+        
+        <li><a href="/post/02-kubernates-monitor-logs/">02 Kubernetes 监控与日志(Metrics-server)</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            <ul class="clearfix">
+                
+                <li><a href='/tags/Kubernetes'>Kubernetes</a></li>
+                
+                <li><a href='/tags/RBAC'>RBAC</a></li>
+                
+                <li><a href='/tags/Authentication'>Authentication</a></li>
+                
+                <li><a href='/tags/Authorization'>Authorization</a></li>
+                
+                <li><a href='/tags/Adminssion-Control'>Adminssion Control</a></li>
+                
+                <li><a href='/tags/Role'>Role</a></li>
+                
+                <li><a href='/tags/network-policy'>network policy</a></li>
+                
+            </ul>
+            
+        </div>
+    </article>
+    
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "yourdiscussshortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="https://hardy1970.github.io">dreamLinux博客 By IT干饭人</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="http://hardy1970.github.io/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">IT干饭人</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='https://hardy1970.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="https://hardy1970.github.io">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/12-kubernates-monitor-logs/" title="12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana">12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/11-kubernetes-helm/" title="11 kubernetes应用包管理工具(Helm)">11 kubernetes应用包管理工具(Helm)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/" title="10 在k8s平台部署一个网站">10 在k8s平台部署一个网站</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/" title="09 Kubernetes 集群升级与维护">09 Kubernetes 集群升级与维护</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/08-kubernetes-etcd/" title="08 Kubernetes ETCD数据备份与恢复">08 Kubernetes ETCD数据备份与恢复</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/07-kubernetes-security/" title="07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)">07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/06-kubernetes-storage/" title="06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)">04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)">03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title" style="color:red">福利派送</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a href="https://www.aliyun.com/minisite/goods?userCode=jdg9oj97&amp;share_source=copy_link" title="【2019双12】ALL IN CLoud 低至1折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1_rYHo7P2gK0jSZPxXXacQpXa-690-388.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://cloud.tencent.com/act/cps/redirect?redirect=1048&amp;cps_key=14ff722692ac784fa8c3301c8c28d924&amp;from=console" title="助力产业智慧升级，云服务器首年88元起，更有千元代金券礼包免费领！" target="_blank" style="color:red">
+                
+                    <img src="https://upload-dianshi-1255598498.file.myqcloud.com/345-7c71532bd4935fbdd9a67c1a71e577b1767b805c.200%E7%89%88%E6%9C%ACB.jpg">
+                
+            </a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (14)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+    <a href="https://hardy1970.github.io/tags/Adminssion-Control/">Adminssion Control</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authentication/">Authentication</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authorization/">Authorization</a>
+    
+    <a href="https://hardy1970.github.io/tags/Calico/">Calico</a>
+    
+    <a href="https://hardy1970.github.io/tags/ConfigMap/">ConfigMap</a>
+    
+    <a href="https://hardy1970.github.io/tags/Deployment/">Deployment</a>
+    
+    <a href="https://hardy1970.github.io/tags/Flannel/">Flannel</a>
+    
+    <a href="https://hardy1970.github.io/tags/Grafana/">Grafana</a>
+    
+    <a href="https://hardy1970.github.io/tags/Heapster/">Heapster</a>
+    
+    <a href="https://hardy1970.github.io/tags/Ingress/">Ingress</a>
+    
+    <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/Metrics-server/">Metrics-server</a>
+    
+    <a href="https://hardy1970.github.io/tags/NFS/">NFS</a>
+    
+    <a href="https://hardy1970.github.io/tags/RBAC/">RBAC</a>
+    
+    <a href="https://hardy1970.github.io/tags/Role/">Role</a>
+    
+    <a href="https://hardy1970.github.io/tags/Secret/">Secret</a>
+    
+    <a href="https://hardy1970.github.io/tags/Service/">Service</a>
+    
+    <a href="https://hardy1970.github.io/tags/bash-completion/">bash-completion</a>
+    
+    <a href="https://hardy1970.github.io/tags/cAdvisor/">cAdvisor</a>
+    
+    <a href="https://hardy1970.github.io/tags/cni/">cni</a>
+    
+    <a href="https://hardy1970.github.io/tags/emptyDir/">emptyDir</a>
+    
+    <a href="https://hardy1970.github.io/tags/etcd/">etcd</a>
+    
+    <a href="https://hardy1970.github.io/tags/hostPath/">hostPath</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubeadm/">kubeadm</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubectl/">kubectl</a>
+    
+    <a href="https://hardy1970.github.io/tags/logs/">logs</a>
+    
+    <a href="https://hardy1970.github.io/tags/monitor/">monitor</a>
+    
+    <a href="https://hardy1970.github.io/tags/network/">network</a>
+    
+    <a href="https://hardy1970.github.io/tags/network-policy/">network policy</a>
+    
+    <a href="https://hardy1970.github.io/tags/pod/">pod</a>
+    
+    <a href="https://hardy1970.github.io/tags/pv/">pv</a>
+    
+    <a href="https://hardy1970.github.io/tags/pvc/">pvc</a>
+    
+    <a href="https://hardy1970.github.io/tags/scale/">scale</a>
+    
+    <a href="https://hardy1970.github.io/tags/storage/">storage</a>
+    
+    <a href="https://hardy1970.github.io/tags/volume/">volume</a>
+    
+    <a href="https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/">动态供给</a>
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://hardy1970.github.io/" title="dreamLinux博客">dreamLinux博客</a>
+        </li>
+        
+        <li>
+            <a target="_blank" href="http://yuedu.baidu.com/ebook/14a722970740be1e640e9a3e" title="Android Gradle权威指南">Android Gradle权威指南</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="https://hardy1970.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

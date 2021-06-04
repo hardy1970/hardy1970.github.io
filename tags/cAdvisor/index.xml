@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>cAdvisor on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/cAdvisor/</link>
+    <description>Recent content in cAdvisor on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Tue, 12 Jan 2021 22:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/cAdvisor/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana</title>
+      <link>https://hardy1970.github.io/post/12-kubernates-monitor-logs/</link>
+      <pubDate>Tue, 12 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/12-kubernates-monitor-logs/</guid>
+      <description>kubernetes监控指标 集群监控 节点资源利用率 节点数 运行Pods pod监控 Kubernetes指标 容器指标 应用程序 Kubernetes监控方案 监控方法 告警 特点 适用 zabbix Y 大量定制工作 大部分的互联网公司 open-falcon Y 功能模块分解比较细，显得更复杂 cAdvisor+Heapster+InfluxDB+Grafana Y 容器监控 cAdvisor/exporter+Prometheus+Grafana Y 扩展性好 容器、应用、主机全方面</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,1898 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret) | dreamLinux博客</title>
+    <meta property="og:title" content="06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret) - dreamLinux博客">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2021-01-10T13:30:00&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2021-01-10T13:30:00&#43;08:00'>
+        
+    <meta name="Keywords" content="linux,python,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="description" content="06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)">
+        
+    <meta name="author" content="IT干饭人">
+    <meta property="og:url" content="https://hardy1970.github.io/post/06-kubernetes-storage/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="https://hardy1970.github.io">
+                        dreamLinux博客
+                    </a>
+                
+                <p class="description">专注于Linux、Python、Go、Docker、ELKStack 等开源技术交流分享</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="https://hardy1970.github.io">首页</a>
+                    
+                    <a  href="https://hardy1970.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="https://hardy1970.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="https://hardy1970.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#为什么需要存储卷">为什么需要存储卷</a></li>
+    <li><a href="#本地卷">本地卷</a>
+      <ul>
+        <li><a href="#临时存储卷emptydir">临时存储卷：emptyDir</a></li>
+        <li><a href="#节点存储卷hostpath">节点存储卷：hostPath</a></li>
+      </ul>
+    </li>
+    <li><a href="#网络卷nfscephglusterfs">网络卷（NFS,Ceph,GlusterFS）</a>
+      <ul>
+        <li><a href="#nfs-是一个主流的文件共享服务器">NFS: 是一个主流的文件共享服务器</a></li>
+        <li><a href="#其它网络存储cephglusterfs">其它网络存储：Ceph、GlusterFS</a></li>
+      </ul>
+    </li>
+    <li><a href="#持久卷">持久卷</a>
+      <ul>
+        <li><a href="#persistenvolumepv对存储资源创建和使用的抽象使得存储作为集群中的资源管理">PersistenVolume(PV)：对存储资源创建和使用的抽象，使得存储作为集群中的资源管理</a></li>
+        <li><a href="#persistentvolumeclaimpvc让用户不需要关心具体的volume实现细节">PersistentVolumeClaim(PVC)：让用户不需要关心具体的Volume实现细节</a></li>
+      </ul>
+    </li>
+    <li><a href="#statefulset控制器">StatefulSet控制器</a>
+      <ul>
+        <li><a href="#部署有状态应用">部署有状态应用</a></li>
+      </ul>
+    </li>
+    <li><a href="#应用程序配置文件存储configmap">应用程序配置文件存储：ConfigMap</a></li>
+    <li><a href="#敏感数据存储secret">敏感数据存储：Secret</a></li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月10日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Kubernetes'>Kubernetes</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="clear" style="display: none">
+            <div class="toc-article">
+                <div class="toc-title">文章目录</div>
+            </div>
+        </div>
+        
+        <div class="post-content">
+            <h2 id="为什么需要存储卷">为什么需要存储卷</h2>
+<ul>
+<li>启动时需要的初始化数据，例如配置文件</li>
+<li>启动过程中产生的临时数据，该临时数据需要多个容器间共享</li>
+<li>启动过程中产品的持久化数据，例如mysql的data</li>
+<li>kubernetes中的volume提供了在容器中挂载外部存储的能力</li>
+<li>pod需要设置卷来源（spec.volume）和挂载点（spec.containers.volumeMounts）两个信息后才可以使用相应的Volume</li>
+<li>常用的数据卷
+<ul>
+<li>本地(hostPath ,emptyDir)</li>
+<li>网络(NFS,Ceph,GlusterFS)</li>
+<li>公有云(AWS EBS)</li>
+<li>K8S资源(configmap,secret)</li>
+</ul>
+</li>
+</ul>
+<h2 id="本地卷">本地卷</h2>
+<h3 id="临时存储卷emptydir">临时存储卷：emptyDir</h3>
+<ul>
+<li>是一个临时存储卷，与pod生命周期绑定一起，如果pod删除了卷也会被删除。</li>
+<li>应用场景：pod中容器之间数据共享
+<ul>
+<li>对应宿主机位置  /var/lib/kubelet/pods/&lt;pod-id&gt;/volumes/kubernetes.io~empty-dir/ #pod-id 通过docker ps 查看</li>
+</ul>
+</li>
+<li>案例yaml</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#998;font-style:italic"># cat emptyDir.yaml</span><span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>Pod<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>my-pod<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">spec</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">containers</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>write<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">image</span>:<span style="color:#bbb"> </span>centos<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">command</span>:<span style="color:#bbb"> </span>[<span style="color:#d14">&#34;bash&#34;</span>,<span style="color:#d14">&#34;-c&#34;</span>,<span style="color:#d14">&#34;for i in {1..100};do echo $i &gt;&gt; /data/hello;sleep 1; done&#34;</span>]<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">volumeMounts</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>data<span style="color:#bbb">
+</span><span style="color:#bbb">       </span><span style="color:#000080">mountPath</span>:<span style="color:#bbb"> </span>/data<span style="color:#bbb">
+</span><span style="color:#bbb">  </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>read<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">image</span>:<span style="color:#bbb"> </span>centos<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">command</span>:<span style="color:#bbb"> </span>[<span style="color:#d14">&#34;bash&#34;</span>,<span style="color:#d14">&#34;-c&#34;</span>,<span style="color:#d14">&#34;tail -f /data/hello&#34;</span>]<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">volumeMounts</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>data<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">mountPath</span>:<span style="color:#bbb"> </span>/data<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">volumes</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">   </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>data<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">emptyDir</span>:<span style="color:#bbb"> </span>{}<span style="color:#bbb">
+</span></code></pre></td></tr></table>
+</div>
+</div><h3 id="节点存储卷hostpath">节点存储卷：hostPath</h3>
+<ul>
+<li>挂载Node文件系统（pod所在节点）上文件或者目录到pod中的容器</li>
+<li>应用场景：pod中容器需要访问宿主机文件，监控</li>
+<li>案例yaml (/etc/hosts)</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat hostPath.yaml </span>
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod-hostpath
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    args:
+    - /bin/sh
+    - -c
+    - sleep <span style="color:#099">36000</span>
+    volumeMounts:
+    - name: data
+      mountPath: /data
+
+  volumes:
+  - name: data
+    hostPath:
+      path: /tmp
+      type: Directory
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it my-pod-hostpath -- /bin/sh </span>
+/ <span style="color:#998;font-style:italic"># cd /data/</span>
+/data <span style="color:#998;font-style:italic"># ls -l</span>
+total <span style="color:#099">24</span>
+-rwx------    <span style="color:#099">1</span> root     root           <span style="color:#099">836</span> Dec  <span style="color:#099">3</span> 21:48 ks-script-85LvfJ
+drwx------    <span style="color:#099">3</span> root     root            <span style="color:#099">17</span> Dec  <span style="color:#099">4</span> 09:42 systemd-private-1d2e60dfc68944f3b778a7a0700a37ec-chronyd.service-SvxIPO
+drwx------    <span style="color:#099">3</span> root     root            <span style="color:#099">17</span> Dec  <span style="color:#099">4</span> 01:22 systemd-private-62e8637d67424100aa661a6fb24934e5-chronyd.service-Elym38
+drwx------    <span style="color:#099">3</span> root     root            <span style="color:#099">17</span> Dec  <span style="color:#099">3</span> 21:49 systemd-private-70ac400c0be340f9aef4f3ad4a0e4877-chronyd.service-p1Lvv8
+drwx------    <span style="color:#099">3</span> root     root            <span style="color:#099">17</span> Dec  <span style="color:#099">3</span> 14:24 systemd-private-dc9ec39f988a45cc931954e23ca64df9-chronyd.service-HmlAsV
+-rw-------    <span style="color:#099">1</span> root     root             <span style="color:#099">0</span> Dec  <span style="color:#099">3</span> 21:44 yum.log
+-rw-------    <span style="color:#099">1</span> root     root          <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 02:18 yum_save_tx.2020-12-04.10-18.7QdahY.yumtx
+-rw-------    <span style="color:#099">1</span> root     root          <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 02:23 yum_save_tx.2020-12-04.10-23.Y4Szc8.yumtx
+-rw-------    <span style="color:#099">1</span> root     root          <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 02:27 yum_save_tx.2020-12-04.10-27.KONBF4.yumtx
+-rw-------    <span style="color:#099">1</span> root     root          <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 02:36 yum_save_tx.2020-12-04.10-36.0a6BOF.yumtx
+-rw-------    <span style="color:#099">1</span> root     root          <span style="color:#099">2534</span> Dec  <span style="color:#099">4</span> 03:14 yum_save_tx.2020-12-04.11-14.8VBOon.yumtx
+/data <span style="color:#998;font-style:italic"># touch a.ttt</span>
+<span style="color:#000;font-weight:bold">[</span>root@node03 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># ll /tmp/  #发现node3 下面有我们创建的文件</span>
+total <span style="color:#099">24</span>
+-rw-r--r--  <span style="color:#099">1</span> root root    <span style="color:#099">0</span> Dec <span style="color:#099">29</span> 11:54 a.ttt
+-rwx------. <span style="color:#099">1</span> root root  <span style="color:#099">836</span> Dec  <span style="color:#099">4</span> 05:48 ks-script-85LvfJ
+drwx------  <span style="color:#099">3</span> root root   <span style="color:#099">17</span> Dec  <span style="color:#099">4</span> 17:42 systemd-private-1d2e60dfc68944f3b778a7a0700a37ec-chronyd.service-SvxIPO
+drwx------  <span style="color:#099">3</span> root root   <span style="color:#099">17</span> Dec  <span style="color:#099">4</span> 09:22 systemd-private-62e8637d67424100aa661a6fb24934e5-chronyd.service-Elym38
+drwx------. <span style="color:#099">3</span> root root   <span style="color:#099">17</span> Dec  <span style="color:#099">4</span> 05:49 systemd-private-70ac400c0be340f9aef4f3ad4a0e4877-chronyd.service-p1Lvv8
+drwx------  <span style="color:#099">3</span> root root   <span style="color:#099">17</span> Dec  <span style="color:#099">3</span> 22:24 systemd-private-dc9ec39f988a45cc931954e23ca64df9-chronyd.service-HmlAsV
+-rw-------. <span style="color:#099">1</span> root root    <span style="color:#099">0</span> Dec  <span style="color:#099">4</span> 05:44 yum.log
+-rw-------  <span style="color:#099">1</span> root root <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 10:18 yum_save_tx.2020-12-04.10-18.7QdahY.yumtx
+-rw-------  <span style="color:#099">1</span> root root <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 10:23 yum_save_tx.2020-12-04.10-23.Y4Szc8.yumtx
+-rw-------  <span style="color:#099">1</span> root root <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 10:27 yum_save_tx.2020-12-04.10-27.KONBF4.yumtx
+-rw-------  <span style="color:#099">1</span> root root <span style="color:#099">2722</span> Dec  <span style="color:#099">4</span> 10:36 yum_save_tx.2020-12-04.10-36.0a6BOF.yumtx
+-rw-------  <span style="color:#099">1</span> root root <span style="color:#099">2534</span> Dec  <span style="color:#099">4</span> 11:14 yum_save_tx.2020-12-04.11-14.8VBOon.yumtx 
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="网络卷nfscephglusterfs">网络卷（NFS,Ceph,GlusterFS）</h2>
+<h3 id="nfs-是一个主流的文件共享服务器">NFS: 是一个主流的文件共享服务器</h3>
+<ul>
+<li>提供对NFS挂载支持，可以自动将NFS共享路径挂载到Pod中</li>
+<li>NFS服务端安装、配置</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#998;font-style:italic"># 安装nfs 服务端、客户端，nfs-utils包,因为包含了客户端和服务端</span>
+<span style="color:#998;font-style:italic"># yum install nfs-utils -y</span>
+<span style="color:#998;font-style:italic">#创建nfs服务器及配置</span>
+<span style="color:#998;font-style:italic"># echo &#34;/ifs/kubernetes *(rw,no_root_squash) &#34;&gt; /etc/exports  # *代表所有机器</span>
+<span style="color:#998;font-style:italic"># mkdir -p /ifs/kubernetes</span>
+<span style="color:#998;font-style:italic"># systemctl start nfs</span>
+<span style="color:#998;font-style:italic"># systemctl enable nfs</span>
+<span style="color:#998;font-style:italic"># 每个node上都要安装nfs-utils包,因为包含了客户端和服务器</span>
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>客户端挂载挂载</li>
+</ul>
+<pre><code> mount -t nfs 192.168.241.122:/ifs/kubernetes /mnt/
+</code></pre><ul>
+<li>案例</li>
+</ul>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat nfs.yaml </span>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment-nfs
+  labels:
+    app: nginx
+spec:
+  replicas: <span style="color:#099">3</span>
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: <span style="color:#099">80</span>
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: www
+        nfs:
+          server: 192.168.241.122
+          path: /ifs/kubernetes
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl echo &#34;test-nfs&#34; &gt; /mnt/index.html</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod -o wide</span>
+NAME                                    READY   STATUS    RESTARTS   AGE    IP               NODE     NOMINATED NODE   READINESS GATES
+dns                                     1/1     Running   <span style="color:#099">1</span>          20d    10.244.186.230   node03   &lt;none&gt;           &lt;none&gt;
+my-pod-hostpath                         1/1     Running   <span style="color:#099">0</span>          24m    10.244.186.232   node03   &lt;none&gt;           &lt;none&gt;
+nginx                                   1/1     Running   <span style="color:#099">0</span>          21d    10.244.186.226   node03   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-c65c76674-kbkpz        1/1     Running   <span style="color:#099">0</span>          21d    10.244.140.94    node02   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-c65c76674-l7z5g        1/1     Running   <span style="color:#099">0</span>          21d    10.244.186.220   node03   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-c65c76674-ljd9k        1/1     Running   <span style="color:#099">0</span>          21d    10.244.140.93    node02   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-nfs-747d59998c-hbznh   1/1     Running   <span style="color:#099">0</span>          4m6s   10.244.186.233   node03   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-nfs-747d59998c-mnhvw   1/1     Running   <span style="color:#099">0</span>          4m6s   10.244.186.234   node03   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-nfs-747d59998c-r2zsn   1/1     Running   <span style="color:#099">0</span>          4m6s   10.244.140.103   node02   &lt;none&gt;           &lt;none&gt;
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl  10.244.186.234/index.html</span>
+test-nfs
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl expose deployment nginx-deployment-nfs --port=80 --target-port=80 --type=NodePort</span>
+service/nginx-deployment-nfs exposed
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get svc</span>
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT<span style="color:#000;font-weight:bold">(</span>S<span style="color:#000;font-weight:bold">)</span>        AGE
+aliang-666             NodePort    10.10.245.52    &lt;none&gt;        80:32766/TCP   21d
+kubernetes             ClusterIP   10.10.0.1       &lt;none&gt;        443/TCP        22d
+nginx                  NodePort    10.10.219.107   &lt;none&gt;        80:32389/TCP   22d
+nginx-deployment-nfs   NodePort    10.10.175.32    &lt;none&gt;        80:30651/TCP   7s
+web666                 NodePort    10.10.187.36    &lt;none&gt;        80:30400/TCP   21d
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl http://192.168.241.121:30651/index.html</span>
+test-nfs
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="其它网络存储cephglusterfs">其它网络存储：Ceph、GlusterFS</h3>
+<ul>
+<li>公有云（AWS EBS）[https://kubernetes.io/zh/docs/concepts/storage/volumes/#awselasticblockstore]</li>
+<li>K8S资源（configmap,secret）</li>
+</ul>
+<h2 id="持久卷">持久卷</h2>
+<h3 id="persistenvolumepv对存储资源创建和使用的抽象使得存储作为集群中的资源管理">PersistenVolume(PV)：对存储资源创建和使用的抽象，使得存储作为集群中的资源管理</h3>
+<ul>
+<li>PV生命周期
+<ul>
+<li>AccessModes(访问策略)：是用来对PV进行访问模式的设置，用于描述用户应用对存储资源的访问权限，访问权限包括下面几种方式：
+<ul>
+<li>ReadWriteOnce(RWO): 读写权限，但是只能被单个节点挂载</li>
+<li>ReadOnlyMany(ROX): 只读权限，可以被多个节点挂载</li>
+<li>ReadWriteMany(RWX): 读写权限，可以被多个节点挂载</li>
+</ul>
+</li>
+<li>RECLAIM POLICY(回收策略)：目前PV支持的策略有三种：
+<ul>
+<li>Retain(保留)：保留数据，需要管理员手工清理数据</li>
+<li>Recycle(回收)：清除PV中的数据，效果相当于执行 rm -rf /ifs/kubernetes/*</li>
+<li>Delete(删除): 与PV相连的后端存储同时删除</li>
+</ul>
+</li>
+<li>STATUS(状态)：一个PV的生命周期中，可能会处于4重不同的阶段
+<ul>
+<li>Available(可用)： 表示可用状态，还未被任何PVC绑定</li>
+<li>Bound(已绑定): 表示PV已经被PVC绑定</li>
+<li>Released(已释放): PVC 被删除，但是资源还未被集群重新声明</li>
+<li>Failed(失败): 表示该PV的自动回收失败</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="persistentvolumeclaimpvc让用户不需要关心具体的volume实现细节">PersistentVolumeClaim(PVC)：让用户不需要关心具体的Volume实现细节</h3>
+<ul>
+<li>
+<p>PV和PVC匹配条件</p>
+<ul>
+<li>存储空间
+<ul>
+<li>匹配最接近的PV容量</li>
+<li>如果都满足不了，pod处于pending，等待可用的pv</li>
+</ul>
+</li>
+<li>访问模式</li>
+</ul>
+</li>
+<li>
+<p>存储空间字段能限制实际存储容量？</p>
+<ul>
+<li>不能，存储空间只能用于匹配一种标记。具体可用容量取决于网络存储（nfs、ceph）</li>
+<li>能不能自动设置这个容量，取决于网络存储技术支不支持（k8s逐步对部分存储提供自动限制的支持）</li>
+</ul>
+</li>
+<li>
+<p>PV与PVC关系</p>
+<ul>
+<li>中国婚姻一样，一夫一妻</li>
+</ul>
+</li>
+<li>
+<p>PV静态供给案例</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">59
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">60
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">61
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">62
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">63
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">64
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">65
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">66
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">67
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">68
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">69
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">70
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">71
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">72
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">73
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">74
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">75
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">76
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat pod-pvc.yaml </span>
+apiVersion: apps/v1  <span style="color:#998;font-style:italic">#容器应用</span>
+kind: Deployment
+metadata:
+  name: deployment-pvc
+  labels:
+    app: nginx
+spec:
+  replicas: <span style="color:#099">3</span>
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx2
+        image: nginx:1.14.2
+        ports:
+        - containerPort: <span style="color:#099">80</span>
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: www
+        persistentVolumeClaim:
+          claimName: my-pvc
+---
+apiVersion: v1 <span style="color:#998;font-style:italic">#卷需求模板（pvc）</span>
+kind: PersistentVolumeClaim  
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat pv.yaml </span>
+apiVersion: v1  <span style="color:#998;font-style:italic">#数据卷定义 创建pv</span>
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: 192.168.241.122
+    path: /ifs/kubernetes
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl apply -f pod-pvc.yaml</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl apply -f pv.yaml</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl expose  deployment deployment-pvc --port=80 --target-port=80 --type=NodePort </span>
+service/deployment-pvc exposed
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get svc</span>
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT<span style="color:#000;font-weight:bold">(</span>S<span style="color:#000;font-weight:bold">)</span>        AGE
+aliang-666             NodePort    10.10.245.52    &lt;none&gt;        80:32766/TCP   22d
+deployment-pvc         NodePort    10.10.170.39    &lt;none&gt;        80:30433/TCP   2s
+kubernetes             ClusterIP   10.10.0.1       &lt;none&gt;        443/TCP        22d
+nginx                  NodePort    10.10.219.107   &lt;none&gt;        80:32389/TCP   22d
+nginx-deployment-nfs   NodePort    10.10.175.32    &lt;none&gt;        80:30651/TCP   159m
+web666                 NodePort    10.10.187.36    &lt;none&gt;        80:30400/TCP   21d
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl 10.10.170.39</span>
+test-nfs
+<span style="color:#998;font-style:italic"># 修改挂载点index.html内容，再次访问发现变化</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl 127.0.0.1:30433</span>
+<span style="color:#099">6666666666</span> test-nfs
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl 10.10.170.39</span>
+<span style="color:#099">6666666666</span> test-nfs
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pv</span>
+NAME    CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM            STORAGECLASS   REASON   AGE
+my-pv   1Gi        RWX            Retain           Bound    default/my-pvc                           14m
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>PV动态供给，使用StorageClass对象实现，可以理解是一个程序帮忙自动创建的
+pod &ndash;&gt; pvc &ndash;&gt; { pv1, pv2, pv3 } StorageClass (自动创建) &ndash;&gt; {NFS}（存储）
+kubectl &ndash;&gt; [Deployment &ndash;&gt; managed-nfs-storage(StorageClass) &ndash;&gt; nfs-client-provisioner(Pod)] &ndash;&gt; [nfs 服务器]</p>
+<ul>
+<li>
+<p>部署NFS实现自动创建PV插件，可以查看官方文档k8s是否内置支持，如果已经支持了，就不用单独部署了。https://kubernetes.io/zh/docs/concepts/storage/storage-classes</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">git clone https://github.com/kubernetes-incubator/external-storage
+<span style="color:#0086b3">cd</span> external-storage/nfs-client/deploy
+kubectl apply -f rbac.yaml <span style="color:#998;font-style:italic"># 授权</span>
+vim deployment.yaml <span style="color:#998;font-style:italic"># 修改nfs服务器和目录</span>
+kubectl apply -f deployment.yaml <span style="color:#998;font-style:italic"># 部署插件</span>
+vim class.yaml <span style="color:#998;font-style:italic"># 修改archiveOnDelete: &#34;false&#34; 为 &#34;true&#34;，表示当删除之后做归档，不做删除</span>
+kubectl apply -f class.yaml <span style="color:#998;font-style:italic"># 创建存储类</span>
+kubectl get sc <span style="color:#998;font-style:italic"># 查看存储类</span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>使用案例</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># cat pod-pv-pvc-test2.yaml </span>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: <span style="color:#0086b3">test</span>
+  labels:
+    app: nginx
+spec:
+  replicas: <span style="color:#099">3</span>
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: <span style="color:#099">80</span>
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: www
+        persistentVolumeClaim:
+          claimName: test-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-pvc
+spec:
+  storageClassName: <span style="color:#d14">&#34;managed-nfs-storage&#34;</span>
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+          
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+</li>
+</ul>
+<h2 id="statefulset控制器">StatefulSet控制器</h2>
+<h3 id="部署有状态应用">部署有状态应用</h3>
+<ul>
+<li>
+<p>稳定的网络ID<br>
+使用Headless Service (相比普通Service只是将spec.clusterIP定义为None) 来维护Pod网络身份。<br>
+并且添加serviceName:&ldquo;nginx'&lsquo;字段指定statefulSet控制器要使用这个Headless Service。会给每一个pod分配一个DNS名称，不会因为你的删除、重建而发生变化（不删集群）。<br>
+DNS解析名称：&lt;statefulsetName-index&gt;.&lt;service-name&gt;.&lt;namespace-name&gt;.svc.cluster.local 实现了唯一地址</p>
+</li>
+<li>
+<p>稳定的存储<br>
+StatefulSet的存储卷使用VolumeClaimTemplate创建，称为卷申请模板，当StatefulSet使用<br>
+VolumeClaimTemplate创建一个PersistentVolume时，同样也会为每个pod分配并创建一个编号的PVC</p>
+</li>
+<li>
+<p>解决pod独立生命周期，保持pod启动顺序和唯一性</p>
+<ul>
+<li>1 稳定，唯一的玩过标识符，持久存储</li>
+<li>2 有序，优雅的部署和扩展、删除和终止</li>
+<li>3 有序，滚动更新</li>
+</ul>
+</li>
+<li>
+<p>应用场景：分布式应用、数据库集群</p>
+</li>
+<li>
+<p>StatefulSet与Deployment区别：有身份的</p>
+<ul>
+<li>域名</li>
+<li>主机名</li>
+<li>存储（PVC）</li>
+</ul>
+</li>
+<li>
+<p>案例</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">  9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 59
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 60
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 61
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 62
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 63
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 64
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 65
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 66
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 67
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 68
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 69
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 70
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 71
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 72
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 73
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 74
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 75
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 76
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 77
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 78
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 79
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 80
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 81
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 82
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 83
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 84
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 85
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 86
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 87
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 88
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 89
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 90
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 91
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 92
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 93
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 94
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 95
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 96
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 97
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 98
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 99
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">100
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">101
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">102
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">103
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: <span style="color:#099">80</span>
+    name: web
+  clusterIP: None <span style="color:#998;font-style:italic">#无头服务</span>
+  selector:
+    app: nginx
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels:
+      app: nginx <span style="color:#998;font-style:italic"># has to match .spec.template.metadata.labels</span>
+  serviceName: <span style="color:#d14">&#34;nginx&#34;</span>
+  replicas: <span style="color:#099">3</span> <span style="color:#998;font-style:italic"># by default is 1</span>
+  template:
+    metadata:
+      labels:
+        app: nginx <span style="color:#998;font-style:italic"># has to match .spec.selector.matchLabels</span>
+    spec:
+      terminationGracePeriodSeconds: <span style="color:#099">10</span>
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: <span style="color:#099">80</span>
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates: <span style="color:#998;font-style:italic">#只针对statefulset</span>
+  - metadata:
+      name: www
+    spec:
+      accessModes: <span style="color:#000;font-weight:bold">[</span> <span style="color:#d14">&#34;ReadWriteOnce&#34;</span> <span style="color:#000;font-weight:bold">]</span>
+      storageClassName:  <span style="color:#d14">&#34;managed-nfs-storage&#34;</span>
+      resources:
+        requests:
+          storage: 1Gi
+  
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pod -o wide</span>
+NAME                                      READY   STATUS    RESTARTS   AGE     IP               NODE     NOMINATED NODE   READINESS GATES
+dns                                       1/1     Running   <span style="color:#099">1</span>          21d     10.244.186.230   node03   &lt;none&gt;           &lt;none&gt;
+my-pod-hostpath                           1/1     Running   <span style="color:#099">0</span>          9h      10.244.186.232   node03   &lt;none&gt;           &lt;none&gt;
+nfs-client-provisioner-5f6bb8ffd9-5rtlv   1/1     Running   <span style="color:#099">0</span>          5h39m   10.244.140.108   node02   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-c65c76674-kbkpz          1/1     Running   <span style="color:#099">0</span>          21d     10.244.140.94    node02   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-c65c76674-l7z5g          1/1     Running   <span style="color:#099">0</span>          21d     10.244.186.220   node03   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-c65c76674-ljd9k          1/1     Running   <span style="color:#099">0</span>          21d     10.244.140.93    node02   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-nfs-747d59998c-hbznh     1/1     Running   <span style="color:#099">0</span>          9h      10.244.186.233   node03   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-nfs-747d59998c-mnhvw     1/1     Running   <span style="color:#099">0</span>          9h      10.244.186.234   node03   &lt;none&gt;           &lt;none&gt;
+nginx-deployment-nfs-747d59998c-r2zsn     1/1     Running   <span style="color:#099">0</span>          9h      10.244.140.103   node02   &lt;none&gt;           &lt;none&gt;
+test-8446bb8b99-4v5nj                     1/1     Running   <span style="color:#099">0</span>          5h36m   10.244.140.109   node02   &lt;none&gt;           &lt;none&gt;
+test-8446bb8b99-fbcss                     1/1     Running   <span style="color:#099">0</span>          5h36m   10.244.186.240   node03   &lt;none&gt;           &lt;none&gt;
+test-8446bb8b99-vfgkl                     1/1     Running   <span style="color:#099">0</span>          5h36m   10.244.140.110   node02   &lt;none&gt;           &lt;none&gt;
+web-0                                     1/1     Running   <span style="color:#099">0</span>          7m1s    10.244.186.241   node03   &lt;none&gt;           &lt;none&gt;
+web-1                                     1/1     Running   <span style="color:#099">0</span>          6m46s   10.244.186.242   node03   &lt;none&gt;           &lt;none&gt;
+web-2                                     1/1     Running   <span style="color:#099">0</span>          6m35s   10.244.140.111   node02   &lt;none&gt;           &lt;none&gt;
+<span style="color:#998;font-style:italic"># 分别编辑nfs web0 和web1 下面的index</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl  10.244.186.241</span>
+<span style="color:#099">000</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># curl  10.244.186.242</span>
+<span style="color:#099">111</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pv</span>
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM               STORAGECLASS          REASON   AGE
+my-pv                                      1Gi        RWX            Retain           Released    default/my-pvc                                     6h37m
+pv001                                      1Gi        RWX            Retain           Bound       default/my-pvc                                     6h25m
+pv002                                      2Gi        RWX            Retain           Available                                                      6h25m
+pv003                                      3Gi        RWX            Retain           Available                                                      6h25m
+pv004                                      4Gi        RWX            Retain           Available                                                      6h25m
+pvc-218babff-9f37-47ae-8708-0281f1c10a40   1Gi        RWO            Delete           Bound       default/www-web-2   managed-nfs-storage            3m56s
+pvc-71cce1e3-77ff-454d-aefb-dfb9fcb25e20   1Gi        RWO            Delete           Bound       default/www-web-1   managed-nfs-storage            4m7s
+pvc-a8fcac5a-d945-413b-b297-229dcff932f7   1Gi        RWX            Delete           Bound       default/test-pvc    managed-nfs-storage            5h33m
+pvc-cb42c655-7e65-4971-bcca-9655944cc60e   1Gi        RWO            Delete           Bound       default/www-web-0   managed-nfs-storage            4m22s
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+<span style="color:#998;font-style:italic">#验证DNS名称</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get svc </span>
+NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT<span style="color:#000;font-weight:bold">(</span>S<span style="color:#000;font-weight:bold">)</span>        AGE
+aliang-666             NodePort    10.10.245.52   &lt;none&gt;        80:32766/TCP   22d
+deployment-pvc         NodePort    10.10.170.39   &lt;none&gt;        80:30433/TCP   6h55m
+kubernetes             ClusterIP   10.10.0.1      &lt;none&gt;        443/TCP        22d
+nginx                  ClusterIP   None           &lt;none&gt;        80/TCP         9m9s
+nginx-deployment-nfs   NodePort    10.10.175.32   &lt;none&gt;        80:30651/TCP   9h
+web666                 NodePort    10.10.187.36   &lt;none&gt;        80:30400/TCP   21d
+
+<span style="color:#000;font-weight:bold">[</span>root@node01 demo<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic">#  kubectl run -it --image=busybox:1.28.4 sh</span>
+If you don<span style="color:#a61717;background-color:#e3d2d2">&#39;</span>t see a <span style="color:#0086b3">command</span> prompt, try pressing enter.
+/ <span style="color:#998;font-style:italic"># nslookup nginx</span>
+Server:    10.10.0.10
+Address 1: 10.10.0.10 kube-dns.kube-system.svc.cluster.local
+  
+Name:      nginx
+Address 1: 10.244.186.241 10-244-186-241.deployment-pvc.default.svc.cluster.local
+Address 2: 10.244.186.242 web-1.nginx.default.svc.cluster.local
+Address 3: 10.244.140.111 10-244-140-111.deployment-pvc.default.svc.cluster.local
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+<h2 id="应用程序配置文件存储configmap">应用程序配置文件存储：ConfigMap</h2>
+<ul>
+<li>创建ConfigMap后，数据实际会存储在k8s ETCD中，然后通过创建Pod时引用该数据</li>
+<li>应用场景：应用程序配置</li>
+<li>pod使用configmap数据有两种方式：
+<ul>
+<li>变量注入</li>
+<li>数据卷挂载</li>
+</ul>
+</li>
+<li>案例
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>ConfigMap<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>configmap-demo<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">data</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#998;font-style:italic"># 类属性键；每一个键都映射到一个简单的值</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">abc</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;123&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">cde</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;456&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#998;font-style:italic"># 类文件键</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">redis.properties</span>:<span style="color:#bbb"> </span>|<span style="color:#bbb"> </span><span style="color:#998;font-style:italic"># | 表示多行,创建一个配置文件 下面是他的内容</span><span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">port</span>:<span style="color:#bbb"> </span><span style="color:#099">6379</span><span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#000080">host</span>:<span style="color:#bbb"> </span><span style="color:#099">192.168.190.140</span><span style="color:#bbb">
+</span><span style="color:#bbb">    
+</span><span style="color:#bbb"></span><span style="color:#555">---</span><span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>Pod<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>configmap-demo-pod<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">spec</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">containers</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>demo<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">image</span>:<span style="color:#bbb"> </span>nginx<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">env</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#998;font-style:italic"># 手动定义</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>NAME<span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">value</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;donggq&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#998;font-style:italic"># 定义环境变量</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>ABCD<span style="color:#bbb"> </span><span style="color:#998;font-style:italic"># 请注意这里和 ConfigMap 中的键名是不一样的</span><span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">valueFrom</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">            </span><span style="color:#000080">configMapKeyRef</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>configmap-demo          <span style="color:#bbb"> </span><span style="color:#998;font-style:italic"># 这个值来自 ConfigMap</span><span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">key</span>:<span style="color:#bbb"> </span>abc<span style="color:#bbb"> </span><span style="color:#998;font-style:italic"># 需要取值的键</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>CDEF<span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">valueFrom</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">            </span><span style="color:#000080">configMapKeyRef</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>configmap-demo<span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">key</span>:<span style="color:#bbb"> </span>cde<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">volumeMounts</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">      </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>config<span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">mountPath</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;/config&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">readOnly</span>:<span style="color:#bbb"> </span><span style="color:#000;font-weight:bold">true</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">volumes</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#998;font-style:italic"># 可以在 Pod 级别设置卷，然后将其挂载到 Pod 内的容器中</span><span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>config<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">configMap</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#998;font-style:italic"># 提供你想要挂载的 ConfigMap 的名字</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>configmap-demo<span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">items</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">key</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;redis.properties&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">path</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;redis.properties&#34;</span><span style="color:#bbb">
+</span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>验证
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get cm</span>
+NAME             DATA   AGE
+configmap-demo   <span style="color:#099">3</span>      3m4s
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it configmap-demo-pod -- bash</span>
+root@configmap-demo-pod:/# <span style="color:#0086b3">echo</span> <span style="color:#008080">$NAME</span>
+donggq
+root@configmap-demo-pod:/# <span style="color:#0086b3">echo</span> <span style="color:#008080">$ABCD</span>
+<span style="color:#099">123</span>
+root@configmap-demo-pod:/# <span style="color:#0086b3">echo</span> <span style="color:#008080">$CDEF</span>
+<span style="color:#099">456</span>
+root@configmap-demo-pod:/# <span style="color:#0086b3">cd</span> /config
+root@configmap-demo-pod:/config# ls -lrt
+total <span style="color:#099">0</span>
+lrwxrwxrwx <span style="color:#099">1</span> root root <span style="color:#099">23</span> Nov <span style="color:#099">12</span> 00:39 redis.properties -&gt; ..data/redis.properties
+root@configmap-demo-pod:/config# 
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+<h2 id="敏感数据存储secret">敏感数据存储：Secret</h2>
+<ul>
+<li>与ConfigMap类似，区别在于Secret主要存储敏感数据，所有的数据要经过base64编码</li>
+<li>应用场景：凭据</li>
+<li>kubectl create secret 支持三种数据类型：
+<ul>
+<li>docker-registry: 存储镜像仓库认证信息</li>
+<li>generic: 从文件、目录或者字符串创建，例如存储用户名密码</li>
+<li>tls: 存储证书，例如HTTPS证书</li>
+</ul>
+</li>
+<li>案例
+<ul>
+<li>
+<p>将用户名密码进行编码</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># echo -n &#34;admin&#34;|base64</span>
+<span style="color:#008080">YWRtaW4</span><span style="color:#000;font-weight:bold">=</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># echo -n &#34;admin123&#34;|base64</span>
+<span style="color:#008080">YWRtaW4xMjM</span><span style="color:#000;font-weight:bold">=</span>
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># </span>
+</code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>Secret<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>secret-demo<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">type</span>:<span style="color:#bbb"> </span>Opaque<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">data</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#998;font-style:italic"># 类属性键；每一个键都映射到一个简单的值</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">username</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;YWRtaW4=&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">password</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;YWRtaW4xMjM=&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">    
+</span><span style="color:#bbb"></span><span style="color:#000080">stringData</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">config.yaml</span>:<span style="color:#bbb"> </span>|-<span style="color:#d14">
+</span><span style="color:#d14">    username: {{username}}
+</span><span style="color:#d14">    password: {{password}}
+</span><span style="color:#d14">    </span><span style="color:#bbb">    
+</span><span style="color:#bbb"></span><span style="color:#555">---</span><span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">apiVersion</span>:<span style="color:#bbb"> </span>v1<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">kind</span>:<span style="color:#bbb"> </span>Pod<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">metadata</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>secret-demo-pod<span style="color:#bbb">
+</span><span style="color:#bbb"></span><span style="color:#000080">spec</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">containers</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>demo<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">image</span>:<span style="color:#bbb"> </span>nginx<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">env</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>USER<span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">valueFrom</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">            </span><span style="color:#000080">secretKeyRef</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>secret-demo          <span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">key</span>:<span style="color:#bbb"> </span>username<span style="color:#bbb"> </span><span style="color:#998;font-style:italic"># 需要取值的键</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>PASS<span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">valueFrom</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">            </span><span style="color:#000080">secretKeyRef</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">name</span>:<span style="color:#bbb"> </span>secret-demo<span style="color:#bbb">
+</span><span style="color:#bbb">              </span><span style="color:#000080">key</span>:<span style="color:#bbb"> </span>password<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">volumeMounts</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">      </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>config<span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">mountPath</span>:<span style="color:#bbb"> </span><span style="color:#d14">&#34;/config&#34;</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">readOnly</span>:<span style="color:#bbb"> </span><span style="color:#000;font-weight:bold">true</span><span style="color:#bbb">
+</span><span style="color:#bbb">  </span><span style="color:#000080">volumes</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">    </span><span style="color:#998;font-style:italic"># 您可以在 Pod 级别设置卷，然后将其挂载到 Pod 内的容器中</span><span style="color:#bbb">
+</span><span style="color:#bbb">    </span>- <span style="color:#000080">name</span>:<span style="color:#bbb"> </span>config<span style="color:#bbb">
+</span><span style="color:#bbb">      </span><span style="color:#000080">secret</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#998;font-style:italic"># 提供你想要挂载的 ConfigMap 的名字</span><span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">secretName</span>:<span style="color:#bbb"> </span>secret-demo<span style="color:#bbb">
+</span><span style="color:#bbb">        </span><span style="color:#000080">items</span>:<span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">key</span>:<span style="color:#bbb"> </span>username<span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">path</span>:<span style="color:#bbb"> </span>usr<span style="color:#bbb">
+</span><span style="color:#bbb">        </span>- <span style="color:#000080">key</span>:<span style="color:#bbb"> </span>password<span style="color:#bbb">
+</span><span style="color:#bbb">          </span><span style="color:#000080">path</span>:<span style="color:#bbb"> </span>pwd<span style="color:#bbb">
+</span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>部署验证</p>
+<div class="highlight"><div style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl apply -f secret-dame.yaml </span>
+pod/secret-demo-pod created
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pods </span>
+NAME                                      READY   STATUS              RESTARTS   AGE
+configmap-demo-pod                        1/1     Running             <span style="color:#099">0</span>          27m
+myweb-6959d55fd5-4qqtc                    1/1     Running             <span style="color:#099">1</span>          5d
+nfs-client-provisioner-64bfb7d744-kdsmh   1/1     Running             <span style="color:#099">0</span>          12h
+secret-demo-pod                           0/1     ContainerCreating   <span style="color:#099">0</span>          5s
+sh                                        1/1     Running             <span style="color:#099">0</span>          10h
+web-0                                     1/1     Running             <span style="color:#099">0</span>          10h
+web-1                                     1/1     Running             <span style="color:#099">0</span>          10h
+web-2                                     1/1     Running             <span style="color:#099">0</span>          10h
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl get pods </span>
+NAME                                      READY   STATUS    RESTARTS   AGE
+configmap-demo-pod                        1/1     Running   <span style="color:#099">0</span>          27m
+myweb-6959d55fd5-4qqtc                    1/1     Running   <span style="color:#099">1</span>          5d
+nfs-client-provisioner-64bfb7d744-kdsmh   1/1     Running   <span style="color:#099">0</span>          12h
+secret-demo-pod                           1/1     Running   <span style="color:#099">0</span>          8s
+sh                                        1/1     Running   <span style="color:#099">0</span>          10h
+web-0                                     1/1     Running   <span style="color:#099">0</span>          10h
+web-1                                     1/1     Running   <span style="color:#099">0</span>          10h
+web-2                                     1/1     Running   <span style="color:#099">0</span>          10h
+<span style="color:#000;font-weight:bold">[</span>root@node01 ~<span style="color:#000;font-weight:bold">]</span><span style="color:#998;font-style:italic"># kubectl exec -it secret-demo-pod -- bash </span>
+root@secret-demo-pod:/# <span style="color:#0086b3">echo</span> <span style="color:#008080">$USER</span>
+admin
+root@secret-demo-pod:/# <span style="color:#0086b3">echo</span> <span style="color:#008080">$PASS</span>
+admin123
+root@secret-demo-pod:/# <span style="color:#0086b3">cd</span> /config/
+root@secret-demo-pod:/config# ls -lrt
+lrwxrwxrwx <span style="color:#099">1</span> root root <span style="color:#099">10</span> Nov <span style="color:#099">12</span> 02:02 usr -&gt; ..data/usr
+lrwxrwxrwx <span style="color:#099">1</span> root root <span style="color:#099">10</span> Nov <span style="color:#099">12</span> 02:02 <span style="color:#0086b3">pwd</span> -&gt; ..data/pwd
+root@secret-demo-pod:/config# cat usr 
+adminroot@secret-demo-pod:/config# cat <span style="color:#0086b3">pwd</span> 
+admin123root@secret-demo-pod:/config# 
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="https://hardy1970.github.io">IT干饭人</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="https://hardy1970.github.io/post/06-kubernetes-storage/">https://hardy1970.github.io/post/06-kubernetes-storage/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/05-kubernetes-network/">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a></li>
+        
+        <li><a href="/post/04-kubernates-schedule/">04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</a></li>
+        
+        <li><a href="/post/03-kubernetes-life-cycle/">03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</a></li>
+        
+        <li><a href="/post/02-kubernates-monitor-logs/">02 Kubernetes 监控与日志(Metrics-server)</a></li>
+        
+        <li><a href="/post/01-kubernates-install/">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            <ul class="clearfix">
+                
+                <li><a href='/tags/Kubernetes'>Kubernetes</a></li>
+                
+                <li><a href='/tags/storage'>storage</a></li>
+                
+                <li><a href='/tags/pv'>pv</a></li>
+                
+                <li><a href='/tags/pvc'>pvc</a></li>
+                
+                <li><a href='/tags/hostPath'>hostPath</a></li>
+                
+                <li><a href='/tags/emptyDir'>emptyDir</a></li>
+                
+                <li><a href='/tags/NFS'>NFS</a></li>
+                
+                <li><a href='/tags/volume'>volume</a></li>
+                
+                <li><a href='/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99'>动态供给</a></li>
+                
+                <li><a href='/tags/ConfigMap'>ConfigMap</a></li>
+                
+                <li><a href='/tags/Secret'>Secret</a></li>
+                
+                <li><a href='/tags/hostPath'>hostPath</a></li>
+                
+            </ul>
+            
+        </div>
+    </article>
+    
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "yourdiscussshortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="https://hardy1970.github.io">dreamLinux博客 By IT干饭人</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="http://hardy1970.github.io/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">IT干饭人</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='https://hardy1970.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="https://hardy1970.github.io">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/12-kubernates-monitor-logs/" title="12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana">12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/11-kubernetes-helm/" title="11 kubernetes应用包管理工具(Helm)">11 kubernetes应用包管理工具(Helm)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/" title="10 在k8s平台部署一个网站">10 在k8s平台部署一个网站</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/" title="09 Kubernetes 集群升级与维护">09 Kubernetes 集群升级与维护</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/08-kubernetes-etcd/" title="08 Kubernetes ETCD数据备份与恢复">08 Kubernetes ETCD数据备份与恢复</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/07-kubernetes-security/" title="07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)">07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/06-kubernetes-storage/" title="06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)">04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)">03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title" style="color:red">福利派送</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a href="https://www.aliyun.com/minisite/goods?userCode=jdg9oj97&amp;share_source=copy_link" title="【2019双12】ALL IN CLoud 低至1折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1_rYHo7P2gK0jSZPxXXacQpXa-690-388.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://cloud.tencent.com/act/cps/redirect?redirect=1048&amp;cps_key=14ff722692ac784fa8c3301c8c28d924&amp;from=console" title="助力产业智慧升级，云服务器首年88元起，更有千元代金券礼包免费领！" target="_blank" style="color:red">
+                
+                    <img src="https://upload-dianshi-1255598498.file.myqcloud.com/345-7c71532bd4935fbdd9a67c1a71e577b1767b805c.200%E7%89%88%E6%9C%ACB.jpg">
+                
+            </a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (14)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+    <a href="https://hardy1970.github.io/tags/Adminssion-Control/">Adminssion Control</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authentication/">Authentication</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authorization/">Authorization</a>
+    
+    <a href="https://hardy1970.github.io/tags/Calico/">Calico</a>
+    
+    <a href="https://hardy1970.github.io/tags/ConfigMap/">ConfigMap</a>
+    
+    <a href="https://hardy1970.github.io/tags/Deployment/">Deployment</a>
+    
+    <a href="https://hardy1970.github.io/tags/Flannel/">Flannel</a>
+    
+    <a href="https://hardy1970.github.io/tags/Grafana/">Grafana</a>
+    
+    <a href="https://hardy1970.github.io/tags/Heapster/">Heapster</a>
+    
+    <a href="https://hardy1970.github.io/tags/Ingress/">Ingress</a>
+    
+    <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/Metrics-server/">Metrics-server</a>
+    
+    <a href="https://hardy1970.github.io/tags/NFS/">NFS</a>
+    
+    <a href="https://hardy1970.github.io/tags/RBAC/">RBAC</a>
+    
+    <a href="https://hardy1970.github.io/tags/Role/">Role</a>
+    
+    <a href="https://hardy1970.github.io/tags/Secret/">Secret</a>
+    
+    <a href="https://hardy1970.github.io/tags/Service/">Service</a>
+    
+    <a href="https://hardy1970.github.io/tags/bash-completion/">bash-completion</a>
+    
+    <a href="https://hardy1970.github.io/tags/cAdvisor/">cAdvisor</a>
+    
+    <a href="https://hardy1970.github.io/tags/cni/">cni</a>
+    
+    <a href="https://hardy1970.github.io/tags/emptyDir/">emptyDir</a>
+    
+    <a href="https://hardy1970.github.io/tags/etcd/">etcd</a>
+    
+    <a href="https://hardy1970.github.io/tags/hostPath/">hostPath</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubeadm/">kubeadm</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubectl/">kubectl</a>
+    
+    <a href="https://hardy1970.github.io/tags/logs/">logs</a>
+    
+    <a href="https://hardy1970.github.io/tags/monitor/">monitor</a>
+    
+    <a href="https://hardy1970.github.io/tags/network/">network</a>
+    
+    <a href="https://hardy1970.github.io/tags/network-policy/">network policy</a>
+    
+    <a href="https://hardy1970.github.io/tags/pod/">pod</a>
+    
+    <a href="https://hardy1970.github.io/tags/pv/">pv</a>
+    
+    <a href="https://hardy1970.github.io/tags/pvc/">pvc</a>
+    
+    <a href="https://hardy1970.github.io/tags/scale/">scale</a>
+    
+    <a href="https://hardy1970.github.io/tags/storage/">storage</a>
+    
+    <a href="https://hardy1970.github.io/tags/volume/">volume</a>
+    
+    <a href="https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/">动态供给</a>
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://hardy1970.github.io/" title="dreamLinux博客">dreamLinux博客</a>
+        </li>
+        
+        <li>
+            <a target="_blank" href="http://yuedu.baidu.com/ebook/14a722970740be1e640e9a3e" title="Android Gradle权威指南">Android Gradle权威指南</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="https://hardy1970.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

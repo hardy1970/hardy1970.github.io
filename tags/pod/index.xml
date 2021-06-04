@@ -8,7 +8,7 @@
     <language>zh-CN</language>
     <lastBuildDate>Sat, 09 Jan 2021 13:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/pod/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>04 Kubernetes 资源调度</title>
+      <title>04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</title>
       <link>https://hardy1970.github.io/post/04-kubernates-schedule/</link>
       <pubDate>Sat, 09 Jan 2021 13:00:00 +0800</pubDate>
       

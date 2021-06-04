@@ -6,13 +6,202 @@
     <description>Recent content in Tags on dreamLinux博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Sun, 10 Jan 2021 21:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 12 Jan 2021 22:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>cAdvisor</title>
+      <link>https://hardy1970.github.io/tags/cAdvisor/</link>
+      <pubDate>Tue, 12 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/cAdvisor/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Grafana</title>
+      <link>https://hardy1970.github.io/tags/Grafana/</link>
+      <pubDate>Tue, 12 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Grafana/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Heapster</title>
+      <link>https://hardy1970.github.io/tags/Heapster/</link>
+      <pubDate>Tue, 12 Jan 2021 22:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Heapster/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>Kubernetes</title>
       <link>https://hardy1970.github.io/tags/Kubernetes/</link>
-      <pubDate>Sun, 10 Jan 2021 21:00:00 +0800</pubDate>
+      <pubDate>Tue, 12 Jan 2021 22:00:00 +0800</pubDate>
       
       <guid>https://hardy1970.github.io/tags/Kubernetes/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>kubeadm</title>
+      <link>https://hardy1970.github.io/tags/kubeadm/</link>
+      <pubDate>Sun, 10 Jan 2021 18:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/kubeadm/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>etcd</title>
+      <link>https://hardy1970.github.io/tags/etcd/</link>
+      <pubDate>Sun, 10 Jan 2021 17:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/etcd/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Adminssion Control</title>
+      <link>https://hardy1970.github.io/tags/Adminssion-Control/</link>
+      <pubDate>Sun, 10 Jan 2021 15:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Adminssion-Control/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Authentication</title>
+      <link>https://hardy1970.github.io/tags/Authentication/</link>
+      <pubDate>Sun, 10 Jan 2021 15:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Authentication/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Authorization</title>
+      <link>https://hardy1970.github.io/tags/Authorization/</link>
+      <pubDate>Sun, 10 Jan 2021 15:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Authorization/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>network policy</title>
+      <link>https://hardy1970.github.io/tags/network-policy/</link>
+      <pubDate>Sun, 10 Jan 2021 15:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/network-policy/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>RBAC</title>
+      <link>https://hardy1970.github.io/tags/RBAC/</link>
+      <pubDate>Sun, 10 Jan 2021 15:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/RBAC/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Role</title>
+      <link>https://hardy1970.github.io/tags/Role/</link>
+      <pubDate>Sun, 10 Jan 2021 15:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Role/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>ConfigMap</title>
+      <link>https://hardy1970.github.io/tags/ConfigMap/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/ConfigMap/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>emptyDir</title>
+      <link>https://hardy1970.github.io/tags/emptyDir/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/emptyDir/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>hostPath</title>
+      <link>https://hardy1970.github.io/tags/hostPath/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/hostPath/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>NFS</title>
+      <link>https://hardy1970.github.io/tags/NFS/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/NFS/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pv</title>
+      <link>https://hardy1970.github.io/tags/pv/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/pv/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pvc</title>
+      <link>https://hardy1970.github.io/tags/pvc/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/pvc/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Secret</title>
+      <link>https://hardy1970.github.io/tags/Secret/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Secret/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>storage</title>
+      <link>https://hardy1970.github.io/tags/storage/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/storage/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>volume</title>
+      <link>https://hardy1970.github.io/tags/volume/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/volume/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>动态供给</title>
+      <link>https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/</guid>
       <description></description>
     </item>
     
@@ -80,6 +269,15 @@
     </item>
     
     <item>
+      <title>Metrics-server</title>
+      <link>https://hardy1970.github.io/tags/Metrics-server/</link>
+      <pubDate>Sat, 09 Jan 2021 10:00:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/tags/Metrics-server/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>monitor</title>
       <link>https://hardy1970.github.io/tags/monitor/</link>
       <pubDate>Sat, 09 Jan 2021 10:00:00 +0800</pubDate>
@@ -112,15 +310,6 @@
       <pubDate>Fri, 08 Jan 2021 22:00:00 +0800</pubDate>
       
       <guid>https://hardy1970.github.io/tags/Flannel/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>kubeadm</title>
-      <link>https://hardy1970.github.io/tags/kubeadm/</link>
-      <pubDate>Fri, 08 Jan 2021 22:00:00 +0800</pubDate>
-      
-      <guid>https://hardy1970.github.io/tags/kubeadm/</guid>
       <description></description>
     </item>
     

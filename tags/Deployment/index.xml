@@ -8,7 +8,7 @@
     <language>zh-CN</language>
     <lastBuildDate>Sat, 09 Jan 2021 11:00:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/Deployment/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>03 Kubernetes 应用程序生命周期管理</title>
+      <title>03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</title>
       <link>https://hardy1970.github.io/post/03-kubernetes-life-cycle/</link>
       <pubDate>Sat, 09 Jan 2021 11:00:00 +0800</pubDate>
       

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Authorization on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/Authorization/</link>
+    <description>Recent content in Authorization on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Sun, 10 Jan 2021 15:30:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/Authorization/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</title>
+      <link>https://hardy1970.github.io/post/07-kubernetes-security/</link>
+      <pubDate>Sun, 10 Jan 2021 15:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/07-kubernetes-security/</guid>
+      <description>kubernetes 安全框架 k8s安全控制框架主要由下面3个阶段进行控制，每一个阶段都支持插件方式，通过API Server配置来启用插件。 客户端要想访问k8s集群API Server，一般需要证书、Token或者用户名+密码；如果Pod访问，需要ServiceAccount Authentication (鉴权) Authorization (授权) Adminssion Control (</description>
+    </item>
+    
+  </channel>
+</rss>

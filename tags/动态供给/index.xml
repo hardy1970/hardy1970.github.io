@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>动态供给 on dreamLinux博客</title>
+    <link>https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/</link>
+    <description>Recent content in 动态供给 on dreamLinux博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Sun, 10 Jan 2021 13:30:00 +0800</lastBuildDate><atom:link href="https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</title>
+      <link>https://hardy1970.github.io/post/06-kubernetes-storage/</link>
+      <pubDate>Sun, 10 Jan 2021 13:30:00 +0800</pubDate>
+      
+      <guid>https://hardy1970.github.io/post/06-kubernetes-storage/</guid>
+      <description>为什么需要存储卷 启动时需要的初始化数据，例如配置文件 启动过程中产生的临时数据，该临时数据需要多个容器间共享 启动过程中产品的持久化数据，例如mysql的data kubernetes中的volume提供了在容器中挂载外部存储的能力 pod需要设置卷来源（spec.volume）和挂载点</description>
+    </item>
+    
+  </channel>
+</rss>

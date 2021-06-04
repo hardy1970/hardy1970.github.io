@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>09 Kubernetes 集群升级与维护 | dreamLinux博客</title>
+    <meta property="og:title" content="09 Kubernetes 集群升级与维护 - dreamLinux博客">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2021-01-10T18:30:00&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2021-01-10T18:30:00&#43;08:00'>
+        
+    <meta name="Keywords" content="linux,python,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="description" content="09 Kubernetes 集群升级与维护">
+        
+    <meta name="author" content="IT干饭人">
+    <meta property="og:url" content="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="https://hardy1970.github.io">
+                        dreamLinux博客
+                    </a>
+                
+                <p class="description">专注于Linux、Python、Go、Docker、ELKStack 等开源技术交流分享</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="https://hardy1970.github.io">首页</a>
+                    
+                    <a  href="https://hardy1970.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="https://hardy1970.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="https://hardy1970.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#kubeadm对k8s集群进行版本升级">kubeadm对k8s集群进行版本升级</a>
+      <ul>
+        <li><a href="#升级基本流程">升级基本流程</a></li>
+      </ul>
+    </li>
+    <li><a href="#案例kubeadm对k8s集群">案例kubeadm对k8s集群</a></li>
+    <li><a href="#二进制安装k8s">二进制安装k8s</a>
+      <ul>
+        <li><a href="#kubernetes-v118-高可用集群自动部署离线版">Kubernetes v1.18 高可用集群自动部署（离线版）</a></li>
+        <li><a href="#确保所有节点系统时间一致">确保所有节点系统时间一致</a></li>
+        <li><a href="#1下载所需文件">1、下载所需文件</a></li>
+        <li><a href="#2修改ansible文件">2、修改Ansible文件</a></li>
+        <li><a href="#3一键部署">3、一键部署</a></li>
+        <li><a href="#架构图">架构图</a></li>
+        <li><a href="#部署命令">部署命令</a></li>
+        <li><a href="#4部署控制">4、部署控制</a></li>
+        <li><a href="#5节点扩容">5、节点扩容</a></li>
+      </ul>
+    </li>
+    <li><a href="#bootstrap-token-方式增加node">Bootstrap Token 方式增加Node</a></li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">09 Kubernetes 集群升级与维护</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月10日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Kubernetes'>Kubernetes</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="clear" style="display: none">
+            <div class="toc-article">
+                <div class="toc-title">文章目录</div>
+            </div>
+        </div>
+        
+        <div class="post-content">
+            <h2 id="kubeadm对k8s集群进行版本升级">kubeadm对k8s集群进行版本升级</h2>
+<p>kubernetes每隔三个月发布一个小版本</p>
+<h3 id="升级基本流程">升级基本流程</h3>
+<p>升级管理节点 &ndash;&gt; 升级其它管理节点 &ndash;&gt; 升级工作节点
+注意事项：</p>
+<ul>
+<li>升级前必须备份所有组件及数据，例如etcd</li>
+<li>千万不要跨多个小版本进行升级，例如1.16升级到1.19，可能出现版本不兼容，版本落后太多，建议重新搭建一套</li>
+<li>始终保持最新</li>
+<li>每半年升级一次，这样会落后社区1-2个小版本</li>
+<li>一年升级一次或者更长，落后版本太多</li>
+</ul>
+<h2 id="案例kubeadm对k8s集群">案例kubeadm对k8s集群</h2>
+<ul>
+<li>升级管理节点
+<ul>
+<li>1 查找最新版本号
+<pre><code># 防止配置了多个yum源 --disableexcludes
+yum list --showduplicates kubeadm --disableexcludes=kubernetes
+</code></pre></li>
+<li>2 升级kubeam
+<pre><code>yum install -y kubeadm-1.19.3-0 --disableexcludes=kubernetes
+</code></pre></li>
+<li>3 驱逐node上的pod，且不可调度
+<pre><code>#--ignore-daemonsets 忽略daemonset pod
+[root@k8s-master ~]# kubectl get nodes
+NAME        STATUS   ROLES    AGE   VERSION
+190-141     Ready    master   12h   v1.18.0
+k8s-node1   Ready    &lt;none&gt;   11h   v1.18.0
+k8s-node3   Ready    &lt;none&gt;   11h   v1.18.0
+[root@k8s-master ~]# kubectl drain 190-141 --ignore-daemonsets
+node/190-141 cordoned
+WARNING: ignoring DaemonSet-managed Pods: kube-system/calico-node-p845k, kube-system/kube-proxy-lr85c
+node/190-141 drained
+[root@k8s-master ~]# kubectl get nodes
+NAME        STATUS                     ROLES    AGE   VERSION
+190-141     Ready,SchedulingDisabled   master   12h   v1.18.0
+k8s-node1   Ready                      &lt;none&gt;   12h   v1.18.0
+k8s-node3   Ready                      &lt;none&gt;   12h   v1.18.0
+</code></pre></li>
+<li>4 检查集群是否可以升级，并获取可以升级的版本
+<pre><code>kubeadm upgrade plan
+</code></pre></li>
+<li>5 执行升级
+<pre><code>kubeadm upgrade apply v1.19.3
+</code></pre></li>
+<li>6 取消不可调度
+<pre><code>kubectl uncordon k8s-master
+</code></pre></li>
+<li>7 升级kubelet和kubectl
+<pre><code>yum install -y kubelet-1.19.3-0 kubectl-1.19.3-0 --disableexcludes=kubernetes
+</code></pre></li>
+<li>8 重启kubelet
+<pre><code>systemctl daemon-reload
+systemctl restart kubelet
+</code></pre></li>
+</ul>
+</li>
+<li>升级工作节点
+<ul>
+<li>1 升级kubeam
+<pre><code>yum install -y kubeadm-1.19.3-0 --disableexcludes=kubernetes
+</code></pre></li>
+<li>2 驱逐node上的pod，且不可调度
+<pre><code>kubectl drain node02  --ignore-daemonsets
+</code></pre></li>
+<li>3 升级kubeadm配置
+<pre><code>[root@demo ~]# kubeadm upgrade node
+[upgrade] Reading configuration from the cluster...
+[upgrade] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -oyaml'
+[preflight] Running pre-flight checks
+[preflight] Skipping prepull. Not a control plane node.
+[upgrade] Skipping phase. Not a control plane node.
+[kubelet-start] Writing kubelet configuration to file &quot;/var/lib/kubelet/config.yaml&quot;
+[upgrade] The configuration for this node was successfully updated!
+[upgrade] Now you should go ahead and upgrade the kubelet package using your package manager.
+[root@demo ~]# 
+</code></pre></li>
+<li>4 升级kubelet和kubectl
+<pre><code>yum install -y kubelet-1.19.3-0 kubectl-1.19.3-0 --disableexcludes=kubernetes
+</code></pre></li>
+<li>5 重启kubelet
+<pre><code>systemctl daemon-reload
+systemctl restart kubelet
+</code></pre></li>
+<li>6 取消不可调度，节点重新上线
+<pre><code>kubectl uncordon node02
+</code></pre></li>
+</ul>
+</li>
+</ul>
+<h2 id="二进制安装k8s">二进制安装k8s</h2>
+<ul>
+<li>
+<p>参考链接 二进制安装 <a href="https://github.com/lizhenliang/ansible-install-k8s">https://github.com/lizhenliang/ansible-install-k8s</a></p>
+<h3 id="kubernetes-v118-高可用集群自动部署离线版">Kubernetes v1.18 高可用集群自动部署（离线版）</h3>
+<blockquote>
+<h3 id="确保所有节点系统时间一致">确保所有节点系统时间一致</h3>
+</blockquote>
+<h3 id="1下载所需文件">1、下载所需文件</h3>
+<p>下载Ansible部署文件：</p>
+<pre><code># git clone https://github.com/lizhenliang/ansible-install-k8s
+# cd ansible-install-k8s
+</code></pre><p>下载软件包并解压/root目录：
+链接：https://pan.baidu.com/s/1EWnJoJjAD3GNqghOwgodWQ 
+提取码：tlvz</p>
+<pre><code># tar zxf binary_pkg.tar.gz
+</code></pre><h3 id="2修改ansible文件">2、修改Ansible文件</h3>
+<p>修改hosts文件，根据规划修改对应IP和名称。</p>
+<pre><code># vi hosts
+​```
+[master]
+#如果部署单Master,只保留一个Master节点
+#默认Master节点也部署Node组件
+192.168.31.61 node_name=k8s-master1
+192.168.31.62 node_name=k8s-master2
+    
+[node]
+192.168.31.72 node_name=k8s-node1
+192.168.31.73 node_name=k8s-node2
+    
+[etcd]
+192.168.31.61 etcd_name=etcd-1
+192.168.31.62 etcd_name=etcd-2
+192.168.31.63 etcd_name=etcd-3
+    
+# 如果部署单master,该项忽略
+[lb]
+192.168.31.63 lb_name=lb-master
+192.168.31.71 lb_name=lb-backup
+    
+[k8s:children]
+master
+node
+    
+​```
+</code></pre><p>修改group_vars/all.yml文件，修改软件包目录和证书可信任IP。</p>
+<pre><code># vim group_vars/all.yml
+software_dir: '/root/binary_pkg'
+...
+cert_hosts:
+  k8s:
+  etcd:
+</code></pre><h3 id="3一键部署">3、一键部署</h3>
+<h3 id="架构图">架构图</h3>
+<p>单Master架构
+
+        <img class="mx-auto" alt="avatar" src="/img/single-master.jpg" />   
+    </p>
+<p>多Master架构
+
+        <img class="mx-auto" alt="avatar" src="/img/multi-master.jpg" />   
+    </p>
+<h3 id="部署命令">部署命令</h3>
+<p>单Master版：</p>
+<pre><code># ansible-playbook -i hosts single-master-deploy.yml -uroot -k
+ok: [192.168.190.170] =&gt; {
+    &quot;ui.stdout_lines&quot;: [
+        &quot;访问地址---&gt;https://NodeIP:30001&quot;, 
+        &quot;令牌内容---&gt;eyJhbGciOiJSUzI1NiIsImtpZCI6IlRnazhxd2xkdkl6SzdCeTRUU05NQTJXSFUySUV1NjgwOWllMmdXM3BNSnMifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tc3F3a2siLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiYmViNTBjZWQtMGI2Zi00ZTQzLWFlZjgtMjJlODNiNzJkNTc4Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmVybmV0ZXMtZGFzaGJvYXJkOmRhc2hib2FyZC1hZG1pbiJ9.KqU4QL8DMvjFXVFk1Ikfcsud4VXBhhcon1t_fHUTzk1kx-uWGw1LbQ9IY8oSHDnIfYBQLHVEwtsPs1lLND0qGdz931SAM1seutKFqoFhK8T2oK0kRD71QR_HxPlYBLWMt3QoFN2CJ8LIHbe56fxoM3D19d52OdVUUR2NtNKVyCVRVX8Z_vnc8FZnJou7n6JNdtgt5t7kjAS-6ped--YIavPnYI-hrMqbTUwEjUEr6-Hc-jLsscGWMLLzqwDoJzT6Bp_W9EFM5cDMSSA01RBoleNOmnq9SNWsrGczfPXfhgiEl39QZYsY6acky142_2RA-bxD4dk-sPlJZ2WAE68wKg&quot;
+    ]
+ }
+    
+</code></pre><p>多Master版：</p>
+<pre><code># ansible-playbook -i hosts multi-master-deploy.yml -uroot -k
+</code></pre><h3 id="4部署控制">4、部署控制</h3>
+<p>如果安装某个阶段失败，可针对性测试.<br>
+例如：只运行部署插件</p>
+<pre><code># ansible-playbook -i hosts single-master-deploy.yml -uroot -k --tags addons
+</code></pre><h3 id="5节点扩容">5、节点扩容</h3>
+<p>1）修改hosts，添加新节点ip</p>
+<pre><code># vi hosts
+</code></pre><p>2）执行部署</p>
+<pre><code>ansible-playbook -i hosts add-node.yml -uroot -k
+</code></pre><p>3）在Master节点允许颁发证书并加入集群</p>
+<pre><code>kubectl get csr
+kubectl certificate approve node-csr-xxx
+</code></pre></li>
+</ul>
+<h2 id="bootstrap-token-方式增加node">Bootstrap Token 方式增加Node</h2>
+<p>TLS Bootstraping: 在Kubernetes集群中，Node上组件Kubernetes和kube-proxy都需要与kube-apiserver进行通信，为了增加传输安全性，采用https方式。这就涉及到Node组件需要预备kube-apiserver用的证书颁发架构（CA）签发客户端证书，当规模较大时，这种客户端证书颁发需要大量工作，通用也会增加集群扩展复杂度。
+为了简化流程，Kubernetes引入了TLS bootstraping机制来自动颁发客户端证书，所以强烈建议在node上使用这种方式。</p>
+<p>大致步骤：
+1、kube-apiserver启用bootstrap token
+&ndash;enable-bootstrap-token-auth=true
+2、使用secret存储bootstrap token
+3、创建RBAC角色绑定，允许kubelet tls bootstrap 创建CSR请求
+4、kubelet配置bootstrap kubeconfig文件
+5、kubectl get csr &amp;&amp; kubectlcertificate approve xxx</p>
+<p>具体步骤如下：</p>
+<ul>
+<li>1 准备新节点环境</li>
+</ul>
+<pre><code> # 提前安装好docker
+ # 1 传文件
+ scp -r /opt/cni root@192.168.190.173:/opt/
+ scp -r kubernetes root@192.168.190.173:/opt/
+ scp /usr/lib/systemd/system/{kubelet,kube-proxy}.service root@192.168.190.173:/usr/lib/systemd/system/
+ # 2 删文件，登录 173 这几个文件都是证书申请批后自动生成的，每个Node不同，必须删除重新生成
+   [root@demo ssl]# cd /opt/kubernetes/ssl
+   [root@demo ssl]# rm kubelet* -f 
+   [root@demo ssl]# cd /opt/kubernetes/cfg/
+   [root@demo cfg]# rm kubelet.kubeconfig bootstrap.kubeconfig -f 
+   [root@demo cfg]# 
+ 3 修改配置文件
+   [root@demo cfg]# pwd
+   /opt/kubernetes/cfg
+   [root@demo cfg]# cd /opt/kubernetes/cfg
+   [root@demo cfg]# vim kubelet-config.yml 
+   [root@demo cfg]# vim kube-proxy-config.yml 
+</code></pre><ul>
+<li>2 kube-apiserver启动Bootstrap Token &ndash;enable-bootstrap-token-auth=true</li>
+</ul>
+<pre><code> # master 登录检查
+ [root@demo system]# cat /opt/kubernetes/cfg/kube-apiserver.conf| grep enable-bootstrap-token-auth
+  --enable-bootstrap-token-auth=true \
+  [root@demo system]#
+</code></pre><ul>
+<li>3 使用Secret存储Bootstrap Token</li>
+</ul>
+<pre><code>[root@demo ~]# pwd
+/root
+[root@demo ~]# cat bootstrap-secret.yaml 
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bootstrap-token-07401b
+  namespace: kube-system
+
+type: bootstrap.kubernetes.io/token
+stringData:
+  description: &quot;The default bootstrap token generated by 'kubeadm init'.&quot;
+
+  token-id: 07401b
+  token-secret: f395accd246ae52d
+  expiration: 2020-12-10T03:22:11Z
+  usage-bootstrap-authentication: &quot;true&quot;
+  usage-bootstrap-signing: &quot;true&quot;
+  auth-extra-groups: system:bootstrappers:worker,system:bootstrappers:ingress
+[root@demo ~]# 
+</code></pre><ul>
+<li>4 创建RBAC角色绑定给节点，允许kubelet tls bootstrap 创建CSR请求</li>
+</ul>
+<pre><code># enable bootstrapping nodes to create CSR
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: create-csrs-for-bootstrapping
+  subjects:
+  - kind: Group
+    name: system:bootstrappers
+    apiGroup: rbac.authorization.k8s.io
+  roleRef:
+    kind: ClusterRole
+    name: system:node-bootstrapper
+    apiGroup: rbac.authorization.k8s.io
+  [root@demo ~]# kubectl apply -f rbac.yaml
+</code></pre><ul>
+<li>5 kubelet配置Bootstrap kubeconfig文件</li>
+</ul>
+<pre><code> # 登录新机器节点 
+   [root@demo cfg]# cat bootrap.kubeconfig 
+   apiVersion: v1
+   kind: Config
+   clusters:
+   - cluster:
+       certificate-authority: /opt/kubernetes/ssl/ca.pem
+       server: https:192.168.190.170:6443
+     name: bootstrap
+   contexts:
+   - context:
+       cluster: bootstrap
+       user: kubelet-bootstrap
+     name: bootstrap
+   current-context: bootstrap
+   preferences: {}
+   users:
+   - name: kubelet-bootstrap
+     user:
+       token: 07401b.f395accd246ae52d
+   [root@demo cfg]# pwd
+   /opt/kubernetes/cfg
+   [root@demo cfg]# systemctl daemon-reload 
+   [root@demo cfg]# systemctl start kubelet 
+   [root@demo cfg]# systemctl enable kubelet 
+   [root@demo cfg]# journalctl -xeu kubelet
+</code></pre><ul>
+<li>检查</li>
+</ul>
+<pre><code>- kubectl get csr &amp;&amp; kubectl certificate approve XXX
+</code></pre>
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="https://hardy1970.github.io">IT干饭人</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/">https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/01-kubernates-install/">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a></li>
+        
+        <li><a href="/post/08-kubernetes-etcd/">08 Kubernetes ETCD数据备份与恢复</a></li>
+        
+        <li><a href="/post/07-kubernetes-security/">07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</a></li>
+        
+        <li><a href="/post/06-kubernetes-storage/">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</a></li>
+        
+        <li><a href="/post/05-kubernetes-network/">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            <ul class="clearfix">
+                
+                <li><a href='/tags/Kubernetes'>Kubernetes</a></li>
+                
+                <li><a href='/tags/kubeadm'>kubeadm</a></li>
+                
+            </ul>
+            
+        </div>
+    </article>
+    
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "yourdiscussshortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="https://hardy1970.github.io">dreamLinux博客 By IT干饭人</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="http://hardy1970.github.io/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">IT干饭人</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='https://hardy1970.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="https://hardy1970.github.io">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/12-kubernates-monitor-logs/" title="12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana">12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/11-kubernetes-helm/" title="11 kubernetes应用包管理工具(Helm)">11 kubernetes应用包管理工具(Helm)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/" title="10 在k8s平台部署一个网站">10 在k8s平台部署一个网站</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/" title="09 Kubernetes 集群升级与维护">09 Kubernetes 集群升级与维护</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/08-kubernetes-etcd/" title="08 Kubernetes ETCD数据备份与恢复">08 Kubernetes ETCD数据备份与恢复</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/07-kubernetes-security/" title="07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)">07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/06-kubernetes-storage/" title="06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)">04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)">03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title" style="color:red">福利派送</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a href="https://www.aliyun.com/minisite/goods?userCode=jdg9oj97&amp;share_source=copy_link" title="【2019双12】ALL IN CLoud 低至1折" target="_blank" style="color:red">
+                
+                    <img src="https://img.alicdn.com/tfs/TB1_rYHo7P2gK0jSZPxXXacQpXa-690-388.jpg">
+                
+            </a>
+        </li>
+        
+        <li>
+            <a href="https://cloud.tencent.com/act/cps/redirect?redirect=1048&amp;cps_key=14ff722692ac784fa8c3301c8c28d924&amp;from=console" title="助力产业智慧升级，云服务器首年88元起，更有千元代金券礼包免费领！" target="_blank" style="color:red">
+                
+                    <img src="https://upload-dianshi-1255598498.file.myqcloud.com/345-7c71532bd4935fbdd9a67c1a71e577b1767b805c.200%E7%89%88%E6%9C%ACB.jpg">
+                
+            </a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (14)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+    <a href="https://hardy1970.github.io/tags/Adminssion-Control/">Adminssion Control</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authentication/">Authentication</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authorization/">Authorization</a>
+    
+    <a href="https://hardy1970.github.io/tags/Calico/">Calico</a>
+    
+    <a href="https://hardy1970.github.io/tags/ConfigMap/">ConfigMap</a>
+    
+    <a href="https://hardy1970.github.io/tags/Deployment/">Deployment</a>
+    
+    <a href="https://hardy1970.github.io/tags/Flannel/">Flannel</a>
+    
+    <a href="https://hardy1970.github.io/tags/Grafana/">Grafana</a>
+    
+    <a href="https://hardy1970.github.io/tags/Heapster/">Heapster</a>
+    
+    <a href="https://hardy1970.github.io/tags/Ingress/">Ingress</a>
+    
+    <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/Metrics-server/">Metrics-server</a>
+    
+    <a href="https://hardy1970.github.io/tags/NFS/">NFS</a>
+    
+    <a href="https://hardy1970.github.io/tags/RBAC/">RBAC</a>
+    
+    <a href="https://hardy1970.github.io/tags/Role/">Role</a>
+    
+    <a href="https://hardy1970.github.io/tags/Secret/">Secret</a>
+    
+    <a href="https://hardy1970.github.io/tags/Service/">Service</a>
+    
+    <a href="https://hardy1970.github.io/tags/bash-completion/">bash-completion</a>
+    
+    <a href="https://hardy1970.github.io/tags/cAdvisor/">cAdvisor</a>
+    
+    <a href="https://hardy1970.github.io/tags/cni/">cni</a>
+    
+    <a href="https://hardy1970.github.io/tags/emptyDir/">emptyDir</a>
+    
+    <a href="https://hardy1970.github.io/tags/etcd/">etcd</a>
+    
+    <a href="https://hardy1970.github.io/tags/hostPath/">hostPath</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubeadm/">kubeadm</a>
+    
+    <a href="https://hardy1970.github.io/tags/kubectl/">kubectl</a>
+    
+    <a href="https://hardy1970.github.io/tags/logs/">logs</a>
+    
+    <a href="https://hardy1970.github.io/tags/monitor/">monitor</a>
+    
+    <a href="https://hardy1970.github.io/tags/network/">network</a>
+    
+    <a href="https://hardy1970.github.io/tags/network-policy/">network policy</a>
+    
+    <a href="https://hardy1970.github.io/tags/pod/">pod</a>
+    
+    <a href="https://hardy1970.github.io/tags/pv/">pv</a>
+    
+    <a href="https://hardy1970.github.io/tags/pvc/">pvc</a>
+    
+    <a href="https://hardy1970.github.io/tags/scale/">scale</a>
+    
+    <a href="https://hardy1970.github.io/tags/storage/">storage</a>
+    
+    <a href="https://hardy1970.github.io/tags/volume/">volume</a>
+    
+    <a href="https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/">动态供给</a>
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://hardy1970.github.io/" title="dreamLinux博客">dreamLinux博客</a>
+        </li>
+        
+        <li>
+            <a target="_blank" href="http://yuedu.baidu.com/ebook/14a722970740be1e640e9a3e" title="Android Gradle权威指南">Android Gradle权威指南</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="https://hardy1970.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

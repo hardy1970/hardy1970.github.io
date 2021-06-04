@@ -14,7 +14,7 @@
     <meta property="og:type" content="article">
         
         
-    <meta name="Keywords" content="linux,go语言,go语言笔记,博客,项目管理,python,软件架构">
+    <meta name="Keywords" content="linux,python,go语言笔记,博客,项目管理,python,软件架构">
     <meta name="description" content="Kubernetes">
         
     <meta name="author" content="IT干饭人">
@@ -86,6 +86,52 @@
     <article class="post">
         <header>
             <h1 class="post-title">
+                <a href="https://hardy1970.github.io/post/12-kubernates-monitor-logs/">12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月12日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/Kubernetes'>Kubernetes</a>
+            
+        </div>
+        
+        <div class="post-content">
+            kubernetes监控指标 集群监控 节点资源利用率 节点数 运行Pods pod监控 Kubernetes指标 容器指标 应用程序 Kubernetes监控方案 监控方法 告警 特点 适用 zabbix Y 大量定制工作 大部分的互联网公司 open-falcon Y 功能模块分解比较细，显得更复杂 cAdvisor+Heapster+InfluxDB+Grafana Y 容器监控 cAdvisor/exporter+Prometheus+Grafana Y 扩展性好 容器、应用、主机全方面……
+            <p class="readmore"><a href="https://hardy1970.github.io/post/12-kubernates-monitor-logs/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="https://hardy1970.github.io/post/11-kubernetes-helm/">11 kubernetes应用包管理工具(Helm)</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月12日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/Kubernetes'>Kubernetes</a>
+            
+        </div>
+        
+        <div class="post-content">
+            ……
+            <p class="readmore"><a href="https://hardy1970.github.io/post/11-kubernetes-helm/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
                 <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/">10 在k8s平台部署一个网站</a>
             </h1>
         </header>
@@ -109,7 +155,99 @@
     <article class="post">
         <header>
             <h1 class="post-title">
-                <a href="https://hardy1970.github.io/post/05-kubernetes-network/">05 Kubernetes 网络</a>
+                <a href="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/">09 Kubernetes 集群升级与维护</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月10日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/Kubernetes'>Kubernetes</a>
+            
+        </div>
+        
+        <div class="post-content">
+            kubeadm对k8s集群进行版本升级 kubernetes每隔三个月发布一个小版本 升级基本流程 升级管理节点 &ndash;&gt; 升级其它管理节点 &ndash;&gt; 升级工作节点 注意事项： 升级前必须备份所有组件及数据，例如etcd 千万不要跨多个小版本进行升级，例如1.16升级到1.19，可能出现版本不兼容，版本落后太多……
+            <p class="readmore"><a href="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="https://hardy1970.github.io/post/08-kubernetes-etcd/">08 Kubernetes ETCD数据备份与恢复</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月10日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/Kubernetes'>Kubernetes</a>
+            
+        </div>
+        
+        <div class="post-content">
+            Etcd数据备份与恢复 kubernetes 使用Etcd 数据库实时存储集群中的数据，安全起见，一定要备份 kubeadm部署方式 etcd默认本地持久化目录 /etc/kubernetes/manifests/etcd.yaml 1 2 3 4 5 6 7 8 9 10 11 12 13 name:etcd-certshostNetwork:truepriorityClassName:system-cluster-criticalvolumes:- hostPath:path:/etc/kubernetes/pki/etcdtype:DirectoryOrCreatename:etcd-certs- hostPath:path:/var/lib/etcdtype:DirectoryOrCreatename:etcd-datastatus:{} 备份 ETCDCTL_API=3代表etcdctl版本 1 2 3 4 5 6 ETCDCTL_API=3 etcdctl \snapshot save snap.db\--endpoints=https://127.0.0.1:2379\--cacert=/etc/kubernetes/pki/etcd/ca.crt\--cert=/etc/kubernetes/pki/etcd/server.crt\--key=/etc/kubernetes/pki/etcd/server.key 恢复 1 先暂停kube-apiserver……
+            <p class="readmore"><a href="https://hardy1970.github.io/post/08-kubernetes-etcd/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="https://hardy1970.github.io/post/07-kubernetes-security/">07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月10日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/Kubernetes'>Kubernetes</a>
+            
+        </div>
+        
+        <div class="post-content">
+            kubernetes 安全框架 k8s安全控制框架主要由下面3个阶段进行控制，每一个阶段都支持插件方式，通过API Server配置来启用插件。 客户端要想访问k8s集群API Server，一般需要证书、Token或者用户名+密码；如果Pod访问，需要ServiceAccount Authentication (鉴权) Authorization (授权) Adminssion Control (……
+            <p class="readmore"><a href="https://hardy1970.github.io/post/07-kubernetes-security/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="https://hardy1970.github.io/post/06-kubernetes-storage/">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2021年1月10日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/Kubernetes'>Kubernetes</a>
+            
+        </div>
+        
+        <div class="post-content">
+            为什么需要存储卷 启动时需要的初始化数据，例如配置文件 启动过程中产生的临时数据，该临时数据需要多个容器间共享 启动过程中产品的持久化数据，例如mysql的data kubernetes中的volume提供了在容器中挂载外部存储的能力 pod需要设置卷来源（spec.volume）和挂载点……
+            <p class="readmore"><a href="https://hardy1970.github.io/post/06-kubernetes-storage/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="https://hardy1970.github.io/post/05-kubernetes-network/">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a>
             </h1>
         </header>
         <date class="post-meta meta-date">
@@ -132,7 +270,7 @@
     <article class="post">
         <header>
             <h1 class="post-title">
-                <a href="https://hardy1970.github.io/post/04-kubernates-schedule/">04 Kubernetes 资源调度</a>
+                <a href="https://hardy1970.github.io/post/04-kubernates-schedule/">04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</a>
             </h1>
         </header>
         <date class="post-meta meta-date">
@@ -155,7 +293,7 @@
     <article class="post">
         <header>
             <h1 class="post-title">
-                <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/">03 Kubernetes 应用程序生命周期管理</a>
+                <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/">03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</a>
             </h1>
         </header>
         <date class="post-meta meta-date">
@@ -175,79 +313,30 @@
         </div>
     </article>
     
-    <article class="post">
-        <header>
-            <h1 class="post-title">
-                <a href="https://hardy1970.github.io/post/02-kubernates-monitor-logs/">02 Kubernetes 监控与日志</a>
-            </h1>
-        </header>
-        <date class="post-meta meta-date">
-            2021年1月9日
-        </date>
-        
-        <div class="post-meta meta-category">
-            |
-            
-            <a href='/categories/Kubernetes'>Kubernetes</a>
-            
-        </div>
-        
-        <div class="post-content">
-            kubernates监控 查看集群资源状况 二进制搭建后，看不到master节点，kubectl get nod只能列出当前节点，如果master节点没有安装kubelet，kubectl get node就看不到master节点。 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34……
-            <p class="readmore"><a href="https://hardy1970.github.io/post/02-kubernates-monitor-logs/">阅读全文</a></p>
-        </div>
-    </article>
-    
-    <article class="post">
-        <header>
-            <h1 class="post-title">
-                <a href="https://hardy1970.github.io/post/01-kubernates-install/">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a>
-            </h1>
-        </header>
-        <date class="post-meta meta-date">
-            2021年1月8日
-        </date>
-        
-        <div class="post-meta meta-category">
-            |
-            
-            <a href='/categories/Kubernetes'>Kubernetes</a>
-            
-        </div>
-        
-        <div class="post-content">
-            生产环境部署k8s的2种方式 实验环境 k8s master/node cpu 2c k8s master/node 内存 2G+ &mdash;&mdash;&mdash;&mdash;&ndash; &mdash;&mdash;&mdash;&mdash;&ndash; &mdash;&mdash;&mdash;&mdash;&ndash; &mdash;&mdash;&mdash;&mdash;&ndash; 测试环境 k8s-master cpu 2核 k8s-master 内存 4G k8s-master 硬盘 20G 测试环境 k8s-node cpu 4核 k8s-node 内存 8G k8s-node 硬盘 20G &mdash;&mdash;&mdash;&mdash;&ndash; &mdash;&mdash;&mdash;&mdash;&ndash; &mdash;&mdash;&mdash;&mdash;&ndash; &mdash;&mdash;&mdash;&mdash;&ndash; 生产环境 k8s-master cpu 8核 k8s-master 内存 16G k8s-master 硬盘 100G 生产环境 k8s-node cpu 16核 k8s-node 内存 64G k8s-node 硬盘 500G 0.kubeadm介绍 kubeadm是一个工具，提供kubeadm init和ku……
-            <p class="readmore"><a href="https://hardy1970.github.io/post/01-kubernates-install/">阅读全文</a></p>
-        </div>
-    </article>
-    
-    <article class="post">
-        <header>
-            <h1 class="post-title">
-                <a href="https://hardy1970.github.io/post/00-kubernates-command/">00 Kubernetes概念及常用命令</a>
-            </h1>
-        </header>
-        <date class="post-meta meta-date">
-            2021年1月8日
-        </date>
-        
-        <div class="post-meta meta-category">
-            |
-            
-            <a href='/categories/Kubernetes'>Kubernetes</a>
-            
-        </div>
-        
-        <div class="post-content">
-            有了docker，为什么还用kubernates? 企业需求：为提高业务并发和高可用，会使用多台服务器 多容器跨主机提供服务 多容器分布节点部署 多容器怎么升级 高效管理这些容器 容器编排程序 kubernates # 谷歌开发 swarm # docker官方开发，官方目前不提供支持了 Mesos Marathon # 依靠marathon框架 kubern……
-            <p class="readmore"><a href="https://hardy1970.github.io/post/00-kubernates-command/">阅读全文</a></p>
-        </div>
-    </article>
-    
 
     
 
 
+
+<ol class="page-navigator">
+    
+
+    
+    <li  class="current">
+        <a href="https://hardy1970.github.io/categories/Kubernetes/">1</a>
+    </li>
+    
+    <li >
+        <a href="https://hardy1970.github.io/categories/Kubernetes/page/2/">2</a>
+    </li>
+    
+
+    
+    <li class="next">
+        <a href="https://hardy1970.github.io/categories/Kubernetes/page/2/">下一页</a>
+    </li>
+    
+</ol>
 
 
 
@@ -303,31 +392,43 @@
 <ul class="widget-list">
     
     <li>
+        <a href="https://hardy1970.github.io/post/12-kubernates-monitor-logs/" title="12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana">12 Kubernetes 监控方案--cAdvisor&#43;Heapster&#43;Heapster&#43;Grafana</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/11-kubernetes-helm/" title="11 kubernetes应用包管理工具(Helm)">11 kubernetes应用包管理工具(Helm)</a>
+    </li>
+    
+    <li>
         <a href="https://hardy1970.github.io/post/10-deploy-demo-on-k8s/" title="10 在k8s平台部署一个网站">10 在k8s平台部署一个网站</a>
     </li>
     
     <li>
-        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络">05 Kubernetes 网络</a>
+        <a href="https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/" title="09 Kubernetes 集群升级与维护">09 Kubernetes 集群升级与维护</a>
     </li>
     
     <li>
-        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度">04 Kubernetes 资源调度</a>
+        <a href="https://hardy1970.github.io/post/08-kubernetes-etcd/" title="08 Kubernetes ETCD数据备份与恢复">08 Kubernetes ETCD数据备份与恢复</a>
     </li>
     
     <li>
-        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理">03 Kubernetes 应用程序生命周期管理</a>
+        <a href="https://hardy1970.github.io/post/07-kubernetes-security/" title="07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)">07 Kubernetes 安全(RBAC、Authentication、Authorization、Adminssion Control)</a>
     </li>
     
     <li>
-        <a href="https://hardy1970.github.io/post/02-kubernates-monitor-logs/" title="02 Kubernetes 监控与日志">02 Kubernetes 监控与日志</a>
+        <a href="https://hardy1970.github.io/post/06-kubernetes-storage/" title="06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)">06 Kubernetes 存储(本地卷、网络卷、StatefulSet、PV、PVC、ConfigMap、Secret)</a>
     </li>
     
     <li>
-        <a href="https://hardy1970.github.io/post/01-kubernates-install/" title="01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)">01 基于kubeadm进行Kubernetes集群搭建(v1.18.0)</a>
+        <a href="https://hardy1970.github.io/post/05-kubernetes-network/" title="05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )">05 Kubernetes 网络(IPVS、Service、Ingress、IngressController )</a>
     </li>
     
     <li>
-        <a href="https://hardy1970.github.io/post/00-kubernates-command/" title="00 Kubernetes概念及常用命令">00 Kubernetes概念及常用命令</a>
+        <a href="https://hardy1970.github.io/post/04-kubernates-schedule/" title="04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)">04 Kubernetes 资源调度(resources、nodeselector、nodeAffinity、Taints、Tolerations、nodeName、DaemonSet)</a>
+    </li>
+    
+    <li>
+        <a href="https://hardy1970.github.io/post/03-kubernetes-life-cycle/" title="03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)">03 Kubernetes 应用程序生命周期管理(Yaml、Pod、Service、Scale、Autoscale、HPA、Rollout)</a>
     </li>
     
 </ul>
@@ -362,7 +463,7 @@
         <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
 <ul class="widget-list">
     
-    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (7)</a></li>
+    <li><a href="https://hardy1970.github.io/categories/Kubernetes/">Kubernetes (14)</a></li>
     
 </ul>
     </section>
@@ -371,21 +472,51 @@
         <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
 <div class="tagcloud">
     
+    <a href="https://hardy1970.github.io/tags/Adminssion-Control/">Adminssion Control</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authentication/">Authentication</a>
+    
+    <a href="https://hardy1970.github.io/tags/Authorization/">Authorization</a>
+    
     <a href="https://hardy1970.github.io/tags/Calico/">Calico</a>
+    
+    <a href="https://hardy1970.github.io/tags/ConfigMap/">ConfigMap</a>
     
     <a href="https://hardy1970.github.io/tags/Deployment/">Deployment</a>
     
     <a href="https://hardy1970.github.io/tags/Flannel/">Flannel</a>
     
+    <a href="https://hardy1970.github.io/tags/Grafana/">Grafana</a>
+    
+    <a href="https://hardy1970.github.io/tags/Heapster/">Heapster</a>
+    
     <a href="https://hardy1970.github.io/tags/Ingress/">Ingress</a>
     
     <a href="https://hardy1970.github.io/tags/Kubernetes/">Kubernetes</a>
+    
+    <a href="https://hardy1970.github.io/tags/Metrics-server/">Metrics-server</a>
+    
+    <a href="https://hardy1970.github.io/tags/NFS/">NFS</a>
+    
+    <a href="https://hardy1970.github.io/tags/RBAC/">RBAC</a>
+    
+    <a href="https://hardy1970.github.io/tags/Role/">Role</a>
+    
+    <a href="https://hardy1970.github.io/tags/Secret/">Secret</a>
     
     <a href="https://hardy1970.github.io/tags/Service/">Service</a>
     
     <a href="https://hardy1970.github.io/tags/bash-completion/">bash-completion</a>
     
+    <a href="https://hardy1970.github.io/tags/cAdvisor/">cAdvisor</a>
+    
     <a href="https://hardy1970.github.io/tags/cni/">cni</a>
+    
+    <a href="https://hardy1970.github.io/tags/emptyDir/">emptyDir</a>
+    
+    <a href="https://hardy1970.github.io/tags/etcd/">etcd</a>
+    
+    <a href="https://hardy1970.github.io/tags/hostPath/">hostPath</a>
     
     <a href="https://hardy1970.github.io/tags/kubeadm/">kubeadm</a>
     
@@ -397,9 +528,21 @@
     
     <a href="https://hardy1970.github.io/tags/network/">network</a>
     
+    <a href="https://hardy1970.github.io/tags/network-policy/">network policy</a>
+    
     <a href="https://hardy1970.github.io/tags/pod/">pod</a>
     
+    <a href="https://hardy1970.github.io/tags/pv/">pv</a>
+    
+    <a href="https://hardy1970.github.io/tags/pvc/">pvc</a>
+    
     <a href="https://hardy1970.github.io/tags/scale/">scale</a>
+    
+    <a href="https://hardy1970.github.io/tags/storage/">storage</a>
+    
+    <a href="https://hardy1970.github.io/tags/volume/">volume</a>
+    
+    <a href="https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/">动态供给</a>
     
 </div>
     </section>

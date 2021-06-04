@@ -3,38 +3,173 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://hardy1970.github.io/post/12-kubernates-monitor-logs/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/cAdvisor/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/categories/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Grafana/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Heapster/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Kubernetes/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/categories/Kubernetes/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/</loc>
+    <lastmod>2021-01-12T22:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/11-kubernetes-helm/</loc>
+    <lastmod>2021-01-12T21:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://hardy1970.github.io/post/10-deploy-demo-on-k8s/</loc>
     <lastmod>2021-01-10T21:00:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/categories/</loc>
-    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/post/09-kubernetes-kubeadminUpgrage/</loc>
+    <lastmod>2021-01-10T18:30:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/</loc>
-    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/tags/kubeadm/</loc>
+    <lastmod>2021-01-10T18:30:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/tags/Kubernetes/</loc>
-    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/post/08-kubernetes-etcd/</loc>
+    <lastmod>2021-01-10T17:30:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/categories/Kubernetes/</loc>
-    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/tags/etcd/</loc>
+    <lastmod>2021-01-10T17:30:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/post/</loc>
-    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/post/07-kubernetes-security/</loc>
+    <lastmod>2021-01-10T15:30:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/tags/</loc>
-    <lastmod>2021-01-10T21:00:00+08:00</lastmod>
+    <loc>https://hardy1970.github.io/tags/Adminssion-Control/</loc>
+    <lastmod>2021-01-10T15:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Authentication/</loc>
+    <lastmod>2021-01-10T15:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Authorization/</loc>
+    <lastmod>2021-01-10T15:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/network-policy/</loc>
+    <lastmod>2021-01-10T15:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/RBAC/</loc>
+    <lastmod>2021-01-10T15:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Role/</loc>
+    <lastmod>2021-01-10T15:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/06-kubernetes-storage/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/ConfigMap/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/emptyDir/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/hostPath/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/NFS/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/pv/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/pvc/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/Secret/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/storage/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/volume/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/tags/%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99/</loc>
+    <lastmod>2021-01-10T13:30:00+08:00</lastmod>
   </url>
   
   <url>
@@ -93,6 +228,11 @@
   </url>
   
   <url>
+    <loc>https://hardy1970.github.io/tags/Metrics-server/</loc>
+    <lastmod>2021-01-09T10:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://hardy1970.github.io/tags/monitor/</loc>
     <lastmod>2021-01-09T10:00:00+08:00</lastmod>
   </url>
@@ -118,11 +258,6 @@
   </url>
   
   <url>
-    <loc>https://hardy1970.github.io/tags/kubeadm/</loc>
-    <lastmod>2021-01-08T22:00:00+08:00</lastmod>
-  </url>
-  
-  <url>
     <loc>https://hardy1970.github.io/post/00-kubernates-command/</loc>
     <lastmod>2021-01-08T21:00:00+08:00</lastmod>
   </url>
@@ -140,6 +275,10 @@
   <url>
     <loc>https://hardy1970.github.io/about/</loc>
     <lastmod>2015-03-10T00:13:27+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://hardy1970.github.io/post/13-kubernates-%E6%8E%92%E9%94%99/</loc>
   </url>
   
   <url>
